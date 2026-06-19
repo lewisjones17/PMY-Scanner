@@ -110,44 +110,41 @@
     object-fit: cover;
   }
 
-  .reticle {
+  .guide-box {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 78%;
-    height: 34%;
+    width: 82%;
     pointer-events: none;
   }
 
-  .reticle::before, .reticle::after,
-  .reticle .c2, .reticle .c3 {
-    content: "";
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    border: 3px solid var(--turf-light);
+  .guide-bars {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2px;
+    height: 38px;
+    margin-bottom: 6px;
+    opacity: 0.85;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.6));
   }
 
-  .reticle::before { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
-  .reticle::after  { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
-  .reticle .c2 { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
-  .reticle .c3 { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
-
-  .scanline {
-    position: absolute;
-    left: 6%;
-    right: 6%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--flag), transparent);
-    top: 50%;
-    animation: sweep 1.8s ease-in-out infinite;
-    box-shadow: 0 0 8px 1px rgba(212,69,44,0.7);
+  .guide-bar {
+    background: var(--turf-light);
+    border-radius: 0.5px;
   }
 
-  @keyframes sweep {
-    0%   { top: 20%; opacity: 0.3; }
-    50%  { top: 78%; opacity: 1; }
-    100% { top: 20%; opacity: 0.3; }
+  .guide-text {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--turf-light);
+    background: rgba(13,27,30,0.55);
+    border: 1.5px dashed var(--turf-light);
+    border-radius: 8px;
+    padding: 9px 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
   }
 
   .scan-state {
@@ -212,12 +209,16 @@
   }
 
   .result-value {
+    width: 100%;
+    border: none;
+    background: transparent;
     font-family: "SF Mono", "Roboto Mono", monospace;
     font-size: 26px;
     font-weight: 700;
     letter-spacing: 0.02em;
-    word-break: break-all;
+    color: var(--ink);
   }
+  .result-value:focus { outline: none; border-bottom: 2px solid var(--turf); }
 
   .result-meta {
     margin-top: 10px;
@@ -371,27 +372,40 @@
 
     <div id="scan-region">
       <video id="video" playsinline muted></video>
+      <canvas id="capture-canvas" style="display:none;"></canvas>
       <div id="placeholder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
           <path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>Tap "Start camera" to scan a barcode</span>
+        <span>Tap "Start camera" to read the MAC digits</span>
       </div>
-      <div class="reticle" id="reticle" style="display:none;">
-        <div class="c2"></div><div class="c3"></div>
-        <div class="scanline"></div>
+      <div class="guide-box" id="guide-box" style="display:none;">
+        <div class="guide-bars">
+          <div class="guide-bar" style="width:2px"></div><div class="guide-bar" style="width:1px"></div>
+          <div class="guide-bar" style="width:3px"></div><div class="guide-bar" style="width:1px"></div>
+          <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:2px"></div>
+          <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:3px"></div>
+          <div class="guide-bar" style="width:2px"></div><div class="guide-bar" style="width:1px"></div>
+          <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:2px"></div>
+          <div class="guide-bar" style="width:3px"></div><div class="guide-bar" style="width:1px"></div>
+          <div class="guide-bar" style="width:2px"></div><div class="guide-bar" style="width:1px"></div>
+          <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:3px"></div>
+          <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:2px"></div>
+        </div>
+        <div class="guide-text">MAC DIGITS GO HERE</div>
       </div>
-      <div class="scan-state" id="scan-state" style="display:none;">Searching for barcode…</div>
+      <div class="scan-state" id="scan-state" style="display:none;">Tap Capture when lined up</div>
     </div>
 
     <div class="result-card" id="result-card">
-      <div class="result-label">Exterity Mac (last 6 digits)</div>
-      <div class="result-value" id="result-value">—</div>
-      <div class="result-meta"><span class="dot"></span><span id="result-meta-text">Scanned just now</span></div>
+      <div class="result-label">Exterity Mac (confirm or correct)</div>
+      <input class="result-value" id="result-value" type="text" autocapitalize="characters" autocomplete="off" inputmode="text">
+      <div class="result-meta"><span class="dot"></span><span id="result-meta-text">Captured just now</span></div>
     </div>
 
     <div class="actions">
       <button class="btn-primary" id="btn-camera">Start camera</button>
+      <button class="btn-primary" id="btn-capture" style="display:none;">Capture</button>
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 2h6l-1 7h3l-8 13 1-9H7l2-11z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -411,7 +425,7 @@
 
     <button class="btn-primary" id="btn-submit" disabled>Send to install form →</button>
 
-    <p class="hint">Start every job here. Point the camera at the <strong>MAC barcode on the Exterity label</strong> and hold steady 10-15cm away — tap the frame if it looks blurry. If it won't lock on, the pencil icon lets you type the 12 digits under the barcode instead.</p>
+    <p class="hint">Start every job here. Line up the <strong>digits under the MAC barcode</strong> with the guide, tap Capture, then check the digits are right before sending. If it's scuffed or won't read, tap the pencil to type it instead.</p>
 
   </main>
 
@@ -421,50 +435,58 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing/0.20.0/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (function () {
   const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
   const ENTRY_ID  = "entry.846307";
 
-  const video         = document.getElementById('video');
-  const scanRegion     = document.getElementById('scan-region');
-  const placeholder    = document.getElementById('placeholder');
-  const reticle         = document.getElementById('reticle');
-  const scanState       = document.getElementById('scan-state');
-  const btnCamera       = document.getElementById('btn-camera');
-  const btnSubmit       = document.getElementById('btn-submit');
-  const btnManualToggle = document.getElementById('btn-manual-toggle');
-  const btnTorch        = document.getElementById('btn-torch');
-  const manualWrap      = document.getElementById('manual-wrap');
-  const manualInput     = document.getElementById('manual-input');
-  const btnManualUse     = document.getElementById('btn-manual-use');
-  const resultCard       = document.getElementById('result-card');
+  const video           = document.getElementById('video');
+  const captureCanvas   = document.getElementById('capture-canvas');
+  const scanRegion       = document.getElementById('scan-region');
+  const placeholder      = document.getElementById('placeholder');
+  const guideBox          = document.getElementById('guide-box');
+  const scanState         = document.getElementById('scan-state');
+  const btnCamera         = document.getElementById('btn-camera');
+  const btnCapture        = document.getElementById('btn-capture');
+  const btnSubmit         = document.getElementById('btn-submit');
+  const btnManualToggle   = document.getElementById('btn-manual-toggle');
+  const btnTorch          = document.getElementById('btn-torch');
+  const manualWrap        = document.getElementById('manual-wrap');
+  const manualInput       = document.getElementById('manual-input');
+  const btnManualUse      = document.getElementById('btn-manual-use');
+  const resultCard        = document.getElementById('result-card');
   const resultValue       = document.getElementById('result-value');
   const resultMetaText    = document.getElementById('result-meta-text');
   const toast             = document.getElementById('toast');
 
-  let codeReader = null;
-  let scanning   = false;
-  let currentValue = null;
-  let activeTrack = null;
-  let torchOn = false;
+  let scanning      = false;
+  let currentValue  = null;
+  let activeTrack   = null;
+  let torchOn       = false;
+  let ocrBusy       = false;
 
   function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
+    setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
   function setResult(value, source) {
     currentValue = value.trim();
-    resultValue.textContent = currentValue;
-    resultMetaText.textContent = source === 'manual' ? 'Entered manually' : 'Scanned just now';
+    resultValue.value = currentValue;
+    resultMetaText.textContent = source === 'manual' ? 'Entered manually' : 'Captured — check it\u2019s correct';
     resultCard.classList.add('show');
-    btnSubmit.disabled = false;
-    if (source === 'scan' && navigator.vibrate) navigator.vibrate(80);
-    if (source === 'scan') showToast('Barcode captured');
+    btnSubmit.disabled = !currentValue;
+    if (source === 'capture' && navigator.vibrate) navigator.vibrate(60);
+    resultValue.focus();
+    resultValue.select();
   }
+
+  resultValue.addEventListener('input', () => {
+    currentValue = resultValue.value.trim();
+    btnSubmit.disabled = !currentValue;
+  });
 
   async function startCamera() {
     if (scanning) return;
@@ -472,21 +494,13 @@
       btnCamera.textContent = 'Starting…';
       btnCamera.disabled = true;
 
-      // Request camera permission directly on the <video> element's stream.
-      // We skip ZXing's device enumeration entirely — it is unreliable on
-      // iOS Safari even after permission is granted. Instead we attach our
-      // own getUserMedia stream straight to the video and hand that to ZXing.
-      // We also request the highest resolution the device supports, since
-      // dense Code 128 barcodes (thin, tightly-packed bars) need more pixels
-      // to resolve cleanly than a default low-res stream provides.
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
             width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-            advanced: [{ focusMode: 'continuous' }]
+            height: { ideal: 1080 }
           }
         });
       } catch (permErr) {
@@ -499,8 +513,6 @@
         }
       }
 
-      // Try to force continuous autofocus if the browser exposes the control
-      // (mainly Android Chrome; iOS Safari currently ignores this silently).
       const [track] = stream.getVideoTracks();
       activeTrack = track;
       if (track && track.getCapabilities) {
@@ -508,8 +520,6 @@
         if (caps.focusMode && caps.focusMode.includes('continuous')) {
           try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
         }
-        // Torch is only exposed on some Android Chrome devices today —
-        // iOS Safari does not expose torch control to web pages at all.
         if (caps.torch) {
           btnTorch.style.display = 'flex';
         }
@@ -518,46 +528,13 @@
       video.srcObject = stream;
       await video.play();
 
-      if (!codeReader) {
-        // Restrict to common 1D product-barcode formats. The unrestricted
-        // multi-format reader tries every 1D + 2D format on every frame,
-        // which measurably hurts real-time detection reliability on phones.
-        const formats = [
-          ZXing.BarcodeFormat.CODE_128,
-          ZXing.BarcodeFormat.CODE_39,
-          ZXing.BarcodeFormat.EAN_13,
-          ZXing.BarcodeFormat.EAN_8,
-          ZXing.BarcodeFormat.UPC_A,
-          ZXing.BarcodeFormat.UPC_E,
-          ZXing.BarcodeFormat.ITF,
-        ];
-        const hints = new Map();
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-        codeReader = new ZXing.BrowserMultiFormatReader(hints, 150);
-      }
-
       placeholder.style.display = 'none';
-      reticle.style.display = 'block';
+      guideBox.style.display = 'block';
       scanState.style.display = 'block';
       scanning = true;
-      btnCamera.textContent = 'Camera active';
-      scanRegion.classList.add('tappable');
+      btnCamera.style.display = 'none';
+      btnCapture.style.display = 'block';
       startBrightnessWatch();
-
-      // Decode directly from the video element we already control,
-      // instead of asking ZXing to open its own device/stream.
-      let attemptCount = 0;
-      codeReader.decodeFromVideoElement(video, (result, err) => {
-        attemptCount++;
-        if (result) {
-          scanState.textContent = 'Locked on';
-          setResult(result.getText(), 'scan');
-        } else if (err && err.name !== 'NotFoundException') {
-          // A real decode error (not just "nothing found this frame")
-          console.error('Decode error:', err);
-        }
-      });
 
     } catch (err) {
       btnCamera.textContent = 'Start camera';
@@ -573,19 +550,66 @@
     }
   }
 
-  btnCamera.addEventListener('click', startCamera);
+  // Crop a generous region around where the MAC digit row typically sits
+  // relative to the guide box, capture it as a still frame, and run OCR.
+  // A still frame is far more reliable for OCR than scanning live video.
+  async function captureAndRead() {
+    if (!scanning || ocrBusy) return;
+    ocrBusy = true;
+    btnCapture.textContent = 'Reading…';
+    btnCapture.disabled = true;
+    scanState.textContent = 'Reading digits…';
 
-  // iOS Safari ignores the focusMode constraint, so the most reliable way
-  // to help users land sharp focus on a dense barcode is encouraging them
-  // to move physically closer/further (autofocus re-triggers on movement)
-  // and giving a tap gesture that nudges the camera to refocus.
-  scanRegion.addEventListener('click', () => {
-    if (!scanning) return;
-    scanRegion.classList.remove('pulse');
-    // restart animation
-    requestAnimationFrame(() => scanRegion.classList.add('pulse'));
-    showToast('Hold steady — move slightly closer if blurry');
-  });
+    try {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
+      // Guide box sits centered, ~82% width, positioned around the
+      // vertical middle of the frame — crop a band around that, with
+      // headroom above/below since the label position varies a bit.
+      const cropW = vw * 0.86;
+      const cropH = vh * 0.30;
+      const cropX = (vw - cropW) / 2;
+      const cropY = (vh - cropH) / 2;
+
+      captureCanvas.width = cropW;
+      captureCanvas.height = cropH;
+      const ctx = captureCanvas.getContext('2d');
+      ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      const dataUrl = captureCanvas.toDataURL('image/png');
+
+      const { data } = await Tesseract.recognize(dataUrl, 'eng', {
+        tessedit_char_whitelist: '0123456789ABCDEFabcdef',
+      });
+
+      const cleaned = (data.text || '')
+        .toUpperCase()
+        .replace(/[^0-9A-F]/g, '');
+
+      if (cleaned.length >= 8) {
+        // MAC strings here are typically 12 hex chars; take the longest
+        // run if OCR picked up extra noise from neighbouring text.
+        setResult(cleaned.slice(0, 12), 'capture');
+        showToast('Captured — check it\u2019s correct');
+      } else {
+        showToast('Could not read it clearly — try again or type it');
+        scanState.textContent = 'Tap Capture when lined up';
+      }
+
+    } catch (err) {
+      console.error('OCR error:', err);
+      showToast('Could not read it — try again or type it');
+      scanState.textContent = 'Tap Capture when lined up';
+    } finally {
+      ocrBusy = false;
+      btnCapture.textContent = 'Capture';
+      btnCapture.disabled = false;
+    }
+  }
+
+  btnCamera.addEventListener('click', startCamera);
+  btnCapture.addEventListener('click', captureAndRead);
 
   btnTorch.addEventListener('click', () => {
     setTorch(!torchOn);
@@ -603,46 +627,38 @@
 
   // Low-light auto-torch: sample average brightness from the video feed
   // every second using an offscreen canvas, and switch the torch on
-  // automatically if it's dark — without requiring the user to notice.
-  let brightnessCanvas = null;
-  let brightnessCtx = null;
+  // automatically if it's dark.
   let brightnessInterval = null;
 
   function startBrightnessWatch() {
     if (!activeTrack) return;
     const caps = activeTrack.getCapabilities ? activeTrack.getCapabilities() : {};
-    if (!caps.torch) return; // nothing to auto-trigger if hardware can't do it
+    if (!caps.torch) return;
 
-    brightnessCanvas = document.createElement('canvas');
-    brightnessCanvas.width = 64;
-    brightnessCanvas.height = 64;
-    brightnessCtx = brightnessCanvas.getContext('2d', { willReadFrequently: true });
+    const bCanvas = document.createElement('canvas');
+    bCanvas.width = 64;
+    bCanvas.height = 64;
+    const bCtx = bCanvas.getContext('2d', { willReadFrequently: true });
 
     brightnessInterval = setInterval(() => {
       if (!scanning || video.readyState < 2) return;
       try {
-        brightnessCtx.drawImage(video, 0, 0, 64, 64);
-        const data = brightnessCtx.getImageData(0, 0, 64, 64).data;
+        bCtx.drawImage(video, 0, 0, 64, 64);
+        const data = bCtx.getImageData(0, 0, 64, 64).data;
         let total = 0;
         for (let i = 0; i < data.length; i += 4) {
           total += (data[i] + data[i + 1] + data[i + 2]) / 3;
         }
-        const avg = total / (data.length / 4); // 0-255
+        const avg = total / (data.length / 4);
 
         if (avg < 60 && !torchOn) {
           setTorch(true);
           showToast('Low light — torch on');
         } else if (avg > 110 && torchOn) {
-          // Bright again (e.g. moved outdoors) — switch back off
           setTorch(false);
         }
       } catch (e) { /* ignore transient read errors */ }
     }, 1000);
-  }
-
-  function stopBrightnessWatch() {
-    if (brightnessInterval) clearInterval(brightnessInterval);
-    brightnessInterval = null;
   }
 
   btnManualToggle.addEventListener('click', () => {
