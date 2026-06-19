@@ -448,28 +448,25 @@
       btnCamera.textContent = 'Starting…';
       btnCamera.disabled = true;
 
-      // Request camera permission FIRST (required on iOS Safari before
-      // device labels/IDs become available). Prefer the back camera.
+      // Request camera permission directly on the <video> element's stream.
+      // We skip ZXing's device enumeration entirely — it is unreliable on
+      // iOS Safari even after permission is granted. Instead we attach our
+      // own getUserMedia stream straight to the video and hand that to ZXing.
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: 'environment' } }
         });
       } catch (permErr) {
-        // Fallback: some iOS versions reject the facingMode constraint outright
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
-      // Permission granted — now we can safely stop this stream and let
-      // ZXing manage its own stream via decodeFromVideoDevice.
-      stream.getTracks().forEach(track => track.stop());
+      video.srcObject = stream;
+      await video.play();
 
       if (!codeReader) {
         codeReader = new ZXing.BrowserMultiFormatReader();
       }
-
-      const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-      const backCam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
 
       placeholder.style.display = 'none';
       reticle.style.display = 'block';
@@ -477,7 +474,9 @@
       scanning = true;
       btnCamera.textContent = 'Camera active';
 
-      codeReader.decodeFromVideoDevice(backCam ? backCam.deviceId : undefined, video, (result, err) => {
+      // Decode directly from the video element we already control,
+      // instead of asking ZXing to open its own device/stream.
+      codeReader.decodeFromVideoElement(video, (result, err) => {
         if (result) {
           scanState.textContent = 'Locked on';
           setResult(result.getText(), 'scan');
