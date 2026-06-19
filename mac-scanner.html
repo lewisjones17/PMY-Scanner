@@ -588,7 +588,37 @@
       const ctx = captureCanvas.getContext('2d');
       ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-      const dataUrl = captureCanvas.toDataURL('image/png');
+      // Upscale 2x and boost contrast before OCR — a sharp synthetic test
+      // reads perfectly, so closing the gap between "looks sharp on a small
+      // preview" and "actually sharp enough for OCR" comes down to giving
+      // Tesseract more pixels and starker black/white separation to work with.
+      const upscale = 2;
+      const procCanvas = document.createElement('canvas');
+      procCanvas.width = cropW * upscale;
+      procCanvas.height = cropH * upscale;
+      const pctx = procCanvas.getContext('2d');
+      pctx.imageSmoothingEnabled = true;
+      pctx.imageSmoothingQuality = 'high';
+      pctx.drawImage(captureCanvas, 0, 0, procCanvas.width, procCanvas.height);
+
+      // Grayscale + contrast stretch
+      const imgData = pctx.getImageData(0, 0, procCanvas.width, procCanvas.height);
+      const px = imgData.data;
+      let min = 255, max = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        const gray = (px[i] + px[i+1] + px[i+2]) / 3;
+        if (gray < min) min = gray;
+        if (gray > max) max = gray;
+      }
+      const range = Math.max(max - min, 1);
+      for (let i = 0; i < px.length; i += 4) {
+        const gray = (px[i] + px[i+1] + px[i+2]) / 3;
+        const stretched = Math.round(((gray - min) / range) * 255);
+        px[i] = px[i+1] = px[i+2] = stretched;
+      }
+      pctx.putImageData(imgData, 0, 0);
+
+      const dataUrl = procCanvas.toDataURL('image/png');
 
       // DEBUG: show exactly what was captured and what OCR returned raw,
       // before any cleaning, so we can see what's actually going wrong.
@@ -605,11 +635,17 @@
         .toUpperCase()
         .replace(/[^0-9A-F]/g, '');
 
-      if (cleaned.length >= 8) {
-        // MAC strings here are typically 12 hex chars; take the longest
-        // run if OCR picked up extra noise from neighbouring text.
-        setResult(cleaned.slice(0, 12), 'capture');
-        showToast('Captured — check it\u2019s correct');
+      if (cleaned.length >= 10) {
+        const finalValue = cleaned.slice(0, 12);
+        setResult(finalValue, 'capture');
+        if (cleaned.length === 12) {
+          showToast('Captured — check it\u2019s correct');
+        } else {
+          // Right character types but not quite a full 12-char read —
+          // flag this clearly rather than presenting it as a clean result.
+          resultMetaText.textContent = 'Only got ' + cleaned.length + ' chars — check carefully';
+          showToast('Partial read — please check before sending');
+        }
       } else {
         showToast('Could not read it clearly — try again or type it');
         scanState.textContent = 'Tap Capture when lined up';
