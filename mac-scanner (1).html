@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PMY Open — Mac Scanner</title>
+<style>
+  :root {
+    --ink:        #0d1b1e;
+    --turf:       #1f6b4a;
+    --turf-light: #2f8a61;
+    --flag:       #d4452c;
+    --sand:       #f4f0e6;
+    --line:       #d9d3c2;
+    --grey:       #5a6b66;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--ink);
+    color: var(--sand);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(244,240,230,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: var(--turf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .brand-mark svg { width: 16px; height: 16px; }
+
+  .brand-text {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .brand-text span {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--grey);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .pill {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 100px;
+    background: rgba(31,107,74,0.25);
+    border: 1px solid rgba(47,138,97,0.5);
+    color: var(--turf-light);
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  #scan-region {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(244,240,230,0.1);
+  }
+
+  #scan-region video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .reticle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 78%;
+    height: 34%;
+    pointer-events: none;
+  }
+
+  .reticle::before, .reticle::after,
+  .reticle .c2, .reticle .c3 {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border: 3px solid var(--turf-light);
+  }
+
+  .reticle::before { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
+  .reticle::after  { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
+  .reticle .c2 { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
+  .reticle .c3 { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
+
+  .scanline {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--flag), transparent);
+    top: 50%;
+    animation: sweep 1.8s ease-in-out infinite;
+    box-shadow: 0 0 8px 1px rgba(212,69,44,0.7);
+  }
+
+  @keyframes sweep {
+    0%   { top: 20%; opacity: 0.3; }
+    50%  { top: 78%; opacity: 1; }
+    100% { top: 20%; opacity: 0.3; }
+  }
+
+  .scan-state {
+    position: absolute;
+    bottom: 10px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(244,240,230,0.85);
+    text-transform: uppercase;
+  }
+
+  #placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--grey);
+    font-size: 13px;
+    text-align: center;
+    padding: 0 30px;
+  }
+
+  #placeholder svg { width: 36px; height: 36px; opacity: 0.5; }
+
+  .result-card {
+    background: var(--sand);
+    color: var(--ink);
+    border-radius: 16px;
+    padding: 18px;
+    display: none;
+  }
+
+  .result-card.show { display: block; animation: rise 0.25s ease-out; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--turf);
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    font-family: "SF Mono", "Roboto Mono", monospace;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    word-break: break-all;
+  }
+
+  .result-meta {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--grey);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--turf); flex-shrink: 0; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 1;
+    transition: transform 0.08s ease, opacity 0.15s ease;
+  }
+
+  button:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--turf);
+    color: var(--sand);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: rgba(244,240,230,0.08);
+    color: var(--sand);
+    border: 1px solid rgba(244,240,230,0.18);
+    flex: 0 0 auto;
+    width: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-ghost svg { width: 18px; height: 18px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--grey);
+    text-align: center;
+    line-height: 1.5;
+    padding: 0 10px;
+  }
+
+  .hint strong { color: var(--sand); font-weight: 600; }
+
+  #manual-toggle {
+    background: none;
+    border: none;
+    color: var(--turf-light);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+    padding: 4px;
+    flex: none;
+  }
+
+  #manual-wrap {
+    display: none;
+    gap: 10px;
+  }
+  #manual-wrap.show { display: flex; }
+
+  #manual-input {
+    flex: 1;
+    background: var(--sand);
+    color: var(--ink);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-family: "SF Mono", "Roboto Mono", monospace;
+  }
+  #manual-input:focus { outline: 2px solid var(--turf-light); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--turf);
+    color: var(--sand);
+    padding: 12px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer {
+    padding: 10px 20px 18px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 0.03em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scanline { animation: none; top: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 5h2v14H5V5zm4 0h1v14H9V5zm3 0h2v14h-2V5zm4 0h1v14h-1V5zm3 0h2v14h-2V5z" fill="#F4F0E6"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        PMY Open
+        <span>Mac Scanner</span>
+      </div>
+    </div>
+    <div class="pill">Live</div>
+  </header>
+
+  <main>
+
+    <div id="scan-region">
+      <video id="video" playsinline muted></video>
+      <div id="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Tap "Start camera" to scan a barcode</span>
+      </div>
+      <div class="reticle" id="reticle" style="display:none;">
+        <div class="c2"></div><div class="c3"></div>
+        <div class="scanline"></div>
+      </div>
+      <div class="scan-state" id="scan-state" style="display:none;">Searching for barcode…</div>
+    </div>
+
+    <div class="result-card" id="result-card">
+      <div class="result-label">Exterity Mac (last 6 digits)</div>
+      <div class="result-value" id="result-value">—</div>
+      <div class="result-meta"><span class="dot"></span><span id="result-meta-text">Scanned just now</span></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="btn-camera">Start camera</button>
+      <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="manual-wrap">
+      <input id="manual-input" type="text" placeholder="Type Mac digits manually" autocapitalize="characters" autocomplete="off">
+      <button class="btn-primary" id="btn-manual-use" style="flex:0 0 auto; width:84px;">Use</button>
+    </div>
+
+    <button class="btn-primary" id="btn-submit" disabled>Send to install form →</button>
+
+    <p class="hint">Start every job here. Point the camera at the <strong>barcode on the Exterity box</strong> — once it locks on, you'll go straight to the install form with the Mac field already filled in.</p>
+
+  </main>
+
+  <footer>PMY OPEN 2026 · Install tracking · Start here for every job</footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing/0.20.0/index.min.js"></script>
+<script>
+(function () {
+  const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
+  const ENTRY_ID  = "entry.846307";
+
+  const video         = document.getElementById('video');
+  const placeholder    = document.getElementById('placeholder');
+  const reticle         = document.getElementById('reticle');
+  const scanState       = document.getElementById('scan-state');
+  const btnCamera       = document.getElementById('btn-camera');
+  const btnSubmit       = document.getElementById('btn-submit');
+  const btnManualToggle = document.getElementById('btn-manual-toggle');
+  const manualWrap      = document.getElementById('manual-wrap');
+  const manualInput     = document.getElementById('manual-input');
+  const btnManualUse     = document.getElementById('btn-manual-use');
+  const resultCard       = document.getElementById('result-card');
+  const resultValue       = document.getElementById('result-value');
+  const resultMetaText    = document.getElementById('result-meta-text');
+  const toast             = document.getElementById('toast');
+
+  let codeReader = null;
+  let scanning   = false;
+  let currentValue = null;
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function setResult(value, source) {
+    currentValue = value.trim();
+    resultValue.textContent = currentValue;
+    resultMetaText.textContent = source === 'manual' ? 'Entered manually' : 'Scanned just now';
+    resultCard.classList.add('show');
+    btnSubmit.disabled = false;
+    if (source === 'scan' && navigator.vibrate) navigator.vibrate(80);
+    if (source === 'scan') showToast('Barcode captured');
+  }
+
+  async function startCamera() {
+    if (scanning) return;
+    try {
+      btnCamera.textContent = 'Starting…';
+      btnCamera.disabled = true;
+
+      if (!codeReader) {
+        codeReader = new ZXing.BrowserMultiFormatReader();
+      }
+
+      const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+      const backCam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
+
+      placeholder.style.display = 'none';
+      reticle.style.display = 'block';
+      scanState.style.display = 'block';
+      scanning = true;
+      btnCamera.textContent = 'Camera active';
+
+      codeReader.decodeFromVideoDevice(backCam ? backCam.deviceId : undefined, video, (result, err) => {
+        if (result) {
+          scanState.textContent = 'Locked on';
+          setResult(result.getText(), 'scan');
+        }
+      });
+
+    } catch (err) {
+      btnCamera.textContent = 'Start camera';
+      btnCamera.disabled = false;
+      showToast('Camera unavailable — try manual entry');
+      console.error(err);
+    }
+  }
+
+  btnCamera.addEventListener('click', startCamera);
+
+  btnManualToggle.addEventListener('click', () => {
+    manualWrap.classList.toggle('show');
+    if (manualWrap.classList.contains('show')) manualInput.focus();
+  });
+
+  btnManualUse.addEventListener('click', () => {
+    const val = manualInput.value.trim();
+    if (!val) { showToast('Type a value first'); return; }
+    setResult(val, 'manual');
+  });
+
+  manualInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnManualUse.click();
+  });
+
+  btnSubmit.addEventListener('click', () => {
+    if (!currentValue) return;
+    const url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
+    window.location.href = url;
+  });
+
+})();
+</script>
+
+</body>
+</html>
