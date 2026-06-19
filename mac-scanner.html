@@ -448,6 +448,22 @@
       btnCamera.textContent = 'Starting…';
       btnCamera.disabled = true;
 
+      // Request camera permission FIRST (required on iOS Safari before
+      // device labels/IDs become available). Prefer the back camera.
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } }
+        });
+      } catch (permErr) {
+        // Fallback: some iOS versions reject the facingMode constraint outright
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      // Permission granted — now we can safely stop this stream and let
+      // ZXing manage its own stream via decodeFromVideoDevice.
+      stream.getTracks().forEach(track => track.stop());
+
       if (!codeReader) {
         codeReader = new ZXing.BrowserMultiFormatReader();
       }
@@ -471,7 +487,13 @@
     } catch (err) {
       btnCamera.textContent = 'Start camera';
       btnCamera.disabled = false;
-      showToast('Camera unavailable — try manual entry');
+      if (err.name === 'NotAllowedError') {
+        showToast('Camera permission denied — check Safari settings');
+      } else if (err.name === 'NotFoundError') {
+        showToast('No camera found on this device');
+      } else {
+        showToast('Camera unavailable — try manual entry');
+      }
       console.error(err);
     }
   }
