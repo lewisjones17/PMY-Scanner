@@ -465,7 +465,22 @@
       await video.play();
 
       if (!codeReader) {
-        codeReader = new ZXing.BrowserMultiFormatReader();
+        // Restrict to common 1D product-barcode formats. The unrestricted
+        // multi-format reader tries every 1D + 2D format on every frame,
+        // which measurably hurts real-time detection reliability on phones.
+        const formats = [
+          ZXing.BarcodeFormat.CODE_128,
+          ZXing.BarcodeFormat.CODE_39,
+          ZXing.BarcodeFormat.EAN_13,
+          ZXing.BarcodeFormat.EAN_8,
+          ZXing.BarcodeFormat.UPC_A,
+          ZXing.BarcodeFormat.UPC_E,
+          ZXing.BarcodeFormat.ITF,
+        ];
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        codeReader = new ZXing.BrowserMultiFormatReader(hints, 150);
       }
 
       placeholder.style.display = 'none';
@@ -476,10 +491,15 @@
 
       // Decode directly from the video element we already control,
       // instead of asking ZXing to open its own device/stream.
+      let attemptCount = 0;
       codeReader.decodeFromVideoElement(video, (result, err) => {
+        attemptCount++;
         if (result) {
           scanState.textContent = 'Locked on';
           setResult(result.getText(), 'scan');
+        } else if (err && err.name !== 'NotFoundException') {
+          // A real decode error (not just "nothing found this frame")
+          console.error('Decode error:', err);
         }
       });
 
