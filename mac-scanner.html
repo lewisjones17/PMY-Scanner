@@ -272,6 +272,12 @@
 
   .btn-ghost svg { width: 18px; height: 18px; }
 
+  .btn-torch-active {
+    background: var(--flag) !important;
+    border-color: var(--flag) !important;
+    color: var(--sand) !important;
+  }
+
   .hint {
     font-size: 12px;
     color: var(--grey);
@@ -386,6 +392,11 @@
 
     <div class="actions">
       <button class="btn-primary" id="btn-camera">Start camera</button>
+      <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 2h6l-1 7h3l-8 13 1-9H7l2-11z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -424,6 +435,7 @@
   const btnCamera       = document.getElementById('btn-camera');
   const btnSubmit       = document.getElementById('btn-submit');
   const btnManualToggle = document.getElementById('btn-manual-toggle');
+  const btnTorch        = document.getElementById('btn-torch');
   const manualWrap      = document.getElementById('manual-wrap');
   const manualInput     = document.getElementById('manual-input');
   const btnManualUse     = document.getElementById('btn-manual-use');
@@ -435,6 +447,8 @@
   let codeReader = null;
   let scanning   = false;
   let currentValue = null;
+  let activeTrack = null;
+  let torchOn = false;
 
   function showToast(msg) {
     toast.textContent = msg;
@@ -488,10 +502,16 @@
       // Try to force continuous autofocus if the browser exposes the control
       // (mainly Android Chrome; iOS Safari currently ignores this silently).
       const [track] = stream.getVideoTracks();
+      activeTrack = track;
       if (track && track.getCapabilities) {
         const caps = track.getCapabilities();
         if (caps.focusMode && caps.focusMode.includes('continuous')) {
           try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
+        }
+        // Torch is only exposed on some Android Chrome devices today —
+        // iOS Safari does not expose torch control to web pages at all.
+        if (caps.torch) {
+          btnTorch.style.display = 'flex';
         }
       }
 
@@ -523,6 +543,7 @@
       scanning = true;
       btnCamera.textContent = 'Camera active';
       scanRegion.classList.add('tappable');
+      startBrightnessWatch();
 
       // Decode directly from the video element we already control,
       // instead of asking ZXing to open its own device/stream.
@@ -565,6 +586,64 @@
     requestAnimationFrame(() => scanRegion.classList.add('pulse'));
     showToast('Hold steady — move slightly closer if blurry');
   });
+
+  btnTorch.addEventListener('click', () => {
+    setTorch(!torchOn);
+  });
+
+  function setTorch(on) {
+    if (!activeTrack) return;
+    activeTrack.applyConstraints({ advanced: [{ torch: on }] })
+      .then(() => {
+        torchOn = on;
+        btnTorch.classList.toggle('btn-torch-active', on);
+      })
+      .catch(() => {});
+  }
+
+  // Low-light auto-torch: sample average brightness from the video feed
+  // every second using an offscreen canvas, and switch the torch on
+  // automatically if it's dark — without requiring the user to notice.
+  let brightnessCanvas = null;
+  let brightnessCtx = null;
+  let brightnessInterval = null;
+
+  function startBrightnessWatch() {
+    if (!activeTrack) return;
+    const caps = activeTrack.getCapabilities ? activeTrack.getCapabilities() : {};
+    if (!caps.torch) return; // nothing to auto-trigger if hardware can't do it
+
+    brightnessCanvas = document.createElement('canvas');
+    brightnessCanvas.width = 64;
+    brightnessCanvas.height = 64;
+    brightnessCtx = brightnessCanvas.getContext('2d', { willReadFrequently: true });
+
+    brightnessInterval = setInterval(() => {
+      if (!scanning || video.readyState < 2) return;
+      try {
+        brightnessCtx.drawImage(video, 0, 0, 64, 64);
+        const data = brightnessCtx.getImageData(0, 0, 64, 64).data;
+        let total = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          total += (data[i] + data[i + 1] + data[i + 2]) / 3;
+        }
+        const avg = total / (data.length / 4); // 0-255
+
+        if (avg < 60 && !torchOn) {
+          setTorch(true);
+          showToast('Low light — torch on');
+        } else if (avg > 110 && torchOn) {
+          // Bright again (e.g. moved outdoors) — switch back off
+          setTorch(false);
+        }
+      } catch (e) { /* ignore transient read errors */ }
+    }, 1000);
+  }
+
+  function stopBrightnessWatch() {
+    if (brightnessInterval) clearInterval(brightnessInterval);
+    brightnessInterval = null;
+  }
 
   btnManualToggle.addEventListener('click', () => {
     manualWrap.classList.toggle('show');
