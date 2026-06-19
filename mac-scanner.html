@@ -392,7 +392,7 @@
           <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:3px"></div>
           <div class="guide-bar" style="width:1px"></div><div class="guide-bar" style="width:2px"></div>
         </div>
-        <div class="guide-text">MAC DIGITS GO HERE</div>
+        <div class="guide-text">LINE UP MAC DIGITS (NOT SERIAL NO.)</div>
       </div>
       <div class="scan-state" id="scan-state" style="display:none;">Tap Capture when lined up</div>
     </div>
@@ -424,6 +424,12 @@
     </div>
 
     <button class="btn-primary" id="btn-submit" disabled>Send to install form →</button>
+
+    <div id="debug-panel" style="display:none; background:rgba(244,240,230,0.06); border-radius:12px; padding:10px; font-size:11px; color:var(--grey);">
+      <div style="margin-bottom:6px; font-weight:700; color:var(--sand);">Debug — what was captured</div>
+      <img id="debug-img" style="width:100%; border-radius:8px; margin-bottom:6px; background:#fff;">
+      <div>Raw OCR text: <span id="debug-raw" style="color:var(--turf-light); font-family:monospace;"></span></div>
+    </div>
 
     <p class="hint">Start every job here. Line up the <strong>digits under the MAC barcode</strong> with the guide, tap Capture, then check the digits are right before sending. If it's scuffed or won't read, tap the pencil to type it instead.</p>
 
@@ -459,6 +465,9 @@
   const resultValue       = document.getElementById('result-value');
   const resultMetaText    = document.getElementById('result-meta-text');
   const toast             = document.getElementById('toast');
+  const debugPanel        = document.getElementById('debug-panel');
+  const debugImg          = document.getElementById('debug-img');
+  const debugRaw          = document.getElementById('debug-raw');
 
   let scanning      = false;
   let currentValue  = null;
@@ -565,12 +574,14 @@
       const vh = video.videoHeight;
 
       // Guide box sits centered, ~82% width, positioned around the
-      // vertical middle of the frame — crop a band around that, with
-      // headroom above/below since the label position varies a bit.
+      // vertical middle of the frame. The actual MAC digit row sits
+      // just BELOW where the guide box visually highlights (since the
+      // guide marks the barcode itself, and the digits print underneath
+      // it on the label) — so shift the crop down to follow that gap.
       const cropW = vw * 0.86;
-      const cropH = vh * 0.30;
+      const cropH = vh * 0.22;
       const cropX = (vw - cropW) / 2;
-      const cropY = (vh - cropH) / 2;
+      const cropY = (vh * 0.50);  // start at vertical center, extend down
 
       captureCanvas.width = cropW;
       captureCanvas.height = cropH;
@@ -579,9 +590,16 @@
 
       const dataUrl = captureCanvas.toDataURL('image/png');
 
+      // DEBUG: show exactly what was captured and what OCR returned raw,
+      // before any cleaning, so we can see what's actually going wrong.
+      debugPanel.style.display = 'block';
+      debugImg.src = dataUrl;
+
       const { data } = await Tesseract.recognize(dataUrl, 'eng', {
         tessedit_char_whitelist: '0123456789ABCDEFabcdef',
       });
+
+      debugRaw.textContent = JSON.stringify(data.text);
 
       const cleaned = (data.text || '')
         .toUpperCase()
