@@ -436,6 +436,15 @@
     cursor: not-allowed;
   }
 
+  @keyframes sendpulse {
+    0%   { box-shadow: 0 0 0 0 rgba(47,138,97,0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(47,138,97,0); }
+    100% { box-shadow: 0 0 0 0 rgba(47,138,97,0); }
+  }
+  .btn-primary.ready-to-send:not(:disabled) {
+    animation: sendpulse 1.6s ease-out infinite;
+  }
+
   .btn-ghost {
     background: rgba(244,240,230,0.08);
     color: var(--sand);
@@ -567,7 +576,7 @@
       </div>
       <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan Or Jason Seagull" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan or Jason Seagull" autocomplete="off" autocapitalize="words">
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
@@ -700,7 +709,7 @@
       <input id="other-input" type="text" placeholder="Other (optional)" autocomplete="off" style="margin-top:10px;">
     </div>
 
-    <button class="btn-primary btn-small-full" id="btn-submit" disabled>Send to install form →</button>
+    <button class="btn-primary btn-large" id="btn-submit" disabled>Send to install form →</button>
 
     <div id="debug-panel" style="display:none; background:rgba(244,240,230,0.06); border-radius:12px; padding:10px; font-size:11px; color:var(--grey);">
       <div>Raw OCR text: <span id="debug-raw" style="color:var(--turf-light); font-family:monospace;"></span></div>
@@ -1170,6 +1179,7 @@
     reasonsSection.style.display = 'none';
     btnCompleteYes.classList.add('btn-primary');
     btnCompleteNo.classList.remove('btn-primary');
+    btnSubmit.classList.remove('ready-to-send');
     updateSubmitButtonState();
     submitJob();
   });
@@ -1178,7 +1188,8 @@
     jobComplete = 'No';
     reasonsSection.style.display = 'block';
     updateSubmitButtonState();
-    showToast('Select the reason(s), then tap Send');
+    btnSubmit.classList.add('ready-to-send');
+    showToast('Select the reason(s), then tap Send to finish');
   });
 
   function buildFormData() {
@@ -1299,6 +1310,7 @@
     });
     otherInput.value = '';
     planLocationInput.value = '';
+    btnSubmit.classList.remove('ready-to-send');
 
     btnSubmit.disabled = true;
     btnSubmit.textContent = 'Send to install form →';
