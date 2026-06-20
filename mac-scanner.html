@@ -635,16 +635,29 @@
         .toUpperCase()
         .replace(/[^0-9A-F]/g, '');
 
+      // Exterity MAC strings on these labels consistently start with the
+      // vendor prefix "00181C". If OCR picked up a stray extra character
+      // (noise from the crop edge, etc.), a blind slice(0,12) can grab the
+      // wrong 12-character window and silently corrupt the result. Anchor
+      // on the known prefix when present, otherwise fall back to the
+      // longest 12-char run starting from position 0.
+      let finalValue;
+      const prefixIndex = cleaned.indexOf('00181C');
+      if (prefixIndex !== -1 && cleaned.length - prefixIndex >= 12) {
+        finalValue = cleaned.slice(prefixIndex, prefixIndex + 12);
+      } else {
+        finalValue = cleaned.slice(0, 12);
+      }
+
       if (cleaned.length >= 10) {
-        const finalValue = cleaned.slice(0, 12);
         setResult(finalValue, 'capture');
-        if (cleaned.length === 12) {
+        if (finalValue.length === 12 && prefixIndex !== -1) {
           showToast('Captured — check it\u2019s correct');
         } else {
-          // Right character types but not quite a full 12-char read —
+          // Either short, or we couldn't anchor on the known prefix —
           // flag this clearly rather than presenting it as a clean result.
-          resultMetaText.textContent = 'Only got ' + cleaned.length + ' chars — check carefully';
-          showToast('Partial read — please check before sending');
+          resultMetaText.textContent = 'Got ' + cleaned.length + ' raw chars — check carefully (raw: ' + cleaned + ')';
+          showToast('Please double-check before sending');
         }
       } else {
         showToast('Could not read it clearly — try again or type it');
