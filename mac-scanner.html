@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,17 +75,87 @@
     margin-top: 1px;
   }
 
-  .pill {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 5px 10px;
-    border-radius: 100px;
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .installer-tag {
+    font-size: 11px;
+    color: var(--grey);
+  }
+
+  .installer-tag button {
+    background: none;
+    border: none;
+    color: var(--turf-light);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 6px;
+    flex: none;
+    width: auto;
+  }
+
+  .name-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+  }
+  .name-gate.hidden { display: none; }
+
+  .name-gate-card {
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+
+  .name-gate-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    border-radius: 16px;
     background: rgba(31,107,74,0.25);
     border: 1px solid rgba(47,138,97,0.5);
     color: var(--turf-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  .name-gate-icon svg { width: 28px; height: 28px; }
+
+  .name-gate-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .name-gate-card p {
+    font-size: 13px;
+    color: var(--grey);
+    margin-bottom: 20px;
+  }
+
+  #name-input {
+    width: 100%;
+    background: var(--sand);
+    color: var(--ink);
+    border: none;
+    border-radius: 12px;
+    padding: 15px 16px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  #name-input:focus { outline: 2px solid var(--turf-light); }
 
   main {
     flex: 1;
@@ -236,6 +307,50 @@
     gap: 10px;
   }
 
+  .actions-secondary {
+    align-items: center;
+  }
+
+  .camera-actions {
+    margin-top: 4px;
+  }
+
+  .btn-large {
+    width: 100%;
+    padding: 19px 18px;
+    font-size: 17px;
+  }
+
+  .btn-small {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 10px 18px;
+    font-size: 13px;
+    margin-left: auto;
+  }
+
+  .capture-preview {
+    background: rgba(244,240,230,0.06);
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .capture-preview-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+
+  .capture-preview img {
+    width: 100%;
+    border-radius: 8px;
+    background: #fff;
+    display: block;
+  }
+
   button {
     font-family: inherit;
     border: none;
@@ -365,8 +480,26 @@
         <span>Mac Scanner</span>
       </div>
     </div>
-    <div class="pill">Live</div>
+    <div class="header-right">
+      <span id="installer-tag" class="installer-tag" style="display:none;"></span>
+      <div class="pill">Live</div>
+    </div>
   </header>
+
+  <div id="name-gate" class="name-gate">
+    <div class="name-gate-card">
+      <div class="name-gate-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2>What's your name?</h2>
+      <p>Saved on this phone — you'll only see this once.</p>
+      <input id="name-input" type="text" placeholder="e.g. Ivan" autocomplete="off" autocapitalize="words">
+      <button class="btn-primary" id="btn-save-name">Save & continue</button>
+    </div>
+  </div>
 
   <main>
 
@@ -403,9 +536,12 @@
       <div class="result-meta"><span class="dot"></span><span id="result-meta-text">Captured just now</span></div>
     </div>
 
-    <div class="actions">
-      <button class="btn-primary" id="btn-camera">Start camera</button>
-      <button class="btn-primary" id="btn-capture" style="display:none;">Capture</button>
+    <div id="capture-preview" class="capture-preview" style="display:none;">
+      <div class="capture-preview-label">What was captured — compare with the digits above</div>
+      <img id="capture-preview-img">
+    </div>
+
+    <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 2h6l-1 7h3l-8 13 1-9H7l2-11z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -416,6 +552,7 @@
           <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
+      <button class="btn-small" id="btn-submit" disabled>Send →</button>
     </div>
 
     <div id="manual-wrap">
@@ -423,11 +560,12 @@
       <button class="btn-primary" id="btn-manual-use" style="flex:0 0 auto; width:84px;">Use</button>
     </div>
 
-    <button class="btn-primary" id="btn-submit" disabled>Send to install form →</button>
+    <div class="camera-actions">
+      <button class="btn-primary btn-large" id="btn-camera">Start camera</button>
+      <button class="btn-primary btn-large" id="btn-capture" style="display:none;">Capture</button>
+    </div>
 
     <div id="debug-panel" style="display:none; background:rgba(244,240,230,0.06); border-radius:12px; padding:10px; font-size:11px; color:var(--grey);">
-      <div style="margin-bottom:6px; font-weight:700; color:var(--sand);">Debug — what was captured</div>
-      <img id="debug-img" style="width:100%; border-radius:8px; margin-bottom:6px; background:#fff;">
       <div>Raw OCR text: <span id="debug-raw" style="color:var(--turf-light); font-family:monospace;"></span></div>
     </div>
 
@@ -446,6 +584,50 @@
 (function () {
   const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
   const ENTRY_ID  = "entry.846307";
+  const NAME_ENTRY_ID = "entry.REPLACE_ME"; // <-- swap in the real entry ID once you have it
+  const NAME_STORAGE_KEY = "pmy_installer_name";
+
+  // ---------------------------------------------------------------
+  // INSTALLER NAME GATE — ask once per device, remember forever
+  // ---------------------------------------------------------------
+  const nameGate    = document.getElementById('name-gate');
+  const nameInput   = document.getElementById('name-input');
+  const btnSaveName = document.getElementById('btn-save-name');
+  const installerTag = document.getElementById('installer-tag');
+
+  let installerName = localStorage.getItem(NAME_STORAGE_KEY);
+
+  function showNameTag() {
+    if (!installerName) { installerTag.style.display = 'none'; return; }
+    installerTag.style.display = 'inline';
+    installerTag.innerHTML = 'Hi, ' + installerName + '<button id="btn-change-name">not you?</button>';
+    document.getElementById('btn-change-name').addEventListener('click', () => {
+      nameGate.classList.remove('hidden');
+      nameInput.value = installerName;
+      nameInput.focus();
+    });
+  }
+
+  function saveInstallerName() {
+    const val = nameInput.value.trim();
+    if (!val) { nameInput.focus(); return; }
+    installerName = val;
+    localStorage.setItem(NAME_STORAGE_KEY, val);
+    nameGate.classList.add('hidden');
+    showNameTag();
+  }
+
+  btnSaveName.addEventListener('click', saveInstallerName);
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveInstallerName();
+  });
+
+  if (installerName) {
+    nameGate.classList.add('hidden');
+    showNameTag();
+  } else {
+    nameInput.focus();
+  }
 
   const video           = document.getElementById('video');
   const captureCanvas   = document.getElementById('capture-canvas');
@@ -466,8 +648,9 @@
   const resultMetaText    = document.getElementById('result-meta-text');
   const toast             = document.getElementById('toast');
   const debugPanel        = document.getElementById('debug-panel');
-  const debugImg          = document.getElementById('debug-img');
   const debugRaw          = document.getElementById('debug-raw');
+  const capturePreview    = document.getElementById('capture-preview');
+  const capturePreviewImg = document.getElementById('capture-preview-img');
 
   let scanning      = false;
   let currentValue  = null;
@@ -620,10 +803,13 @@
 
       const dataUrl = procCanvas.toDataURL('image/png');
 
-      // DEBUG: show exactly what was captured and what OCR returned raw,
-      // before any cleaning, so we can see what's actually going wrong.
+      // Show the capture in its own permanent comparison section, right
+      // below the result field, so it's easy to check the digits against
+      // the photo without digging into a debug panel.
+      capturePreview.style.display = 'block';
+      capturePreviewImg.src = dataUrl;
+
       debugPanel.style.display = 'block';
-      debugImg.src = dataUrl;
 
       const { data } = await Tesseract.recognize(dataUrl, 'eng', {
         tessedit_char_whitelist: '0123456789ABCDEFabcdef',
@@ -745,7 +931,10 @@
 
   btnSubmit.addEventListener('click', () => {
     if (!currentValue) return;
-    const url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
+    let url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
+    if (installerName && NAME_ENTRY_ID && NAME_ENTRY_ID !== 'entry.REPLACE_ME') {
+      url += '&' + NAME_ENTRY_ID + '=' + encodeURIComponent(installerName);
+    }
     window.location.href = url;
   });
 
@@ -754,3 +943,4 @@
 
 </body>
 </html>
+```
