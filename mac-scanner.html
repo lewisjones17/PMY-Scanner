@@ -458,6 +458,12 @@
 
   .btn-ghost svg { width: 18px; height: 18px; }
 
+  .complete-selected {
+    background: var(--turf) !important;
+    border-color: var(--turf) !important;
+    color: var(--sand) !important;
+  }
+
   .btn-secondary {
     background: rgba(244,240,230,0.08);
     color: var(--sand);
@@ -1177,8 +1183,8 @@
   btnCompleteYes.addEventListener('click', () => {
     jobComplete = 'Yes';
     reasonsSection.style.display = 'none';
-    btnCompleteYes.classList.add('btn-primary');
-    btnCompleteNo.classList.remove('btn-primary');
+    btnCompleteYes.classList.add('complete-selected');
+    btnCompleteNo.classList.remove('complete-selected');
     btnSubmit.classList.remove('ready-to-send');
     updateSubmitButtonState();
     submitJob();
@@ -1187,6 +1193,8 @@
   btnCompleteNo.addEventListener('click', () => {
     jobComplete = 'No';
     reasonsSection.style.display = 'block';
+    btnCompleteNo.classList.add('complete-selected');
+    btnCompleteYes.classList.remove('complete-selected');
     updateSubmitButtonState();
     btnSubmit.classList.add('ready-to-send');
     showToast('Select the reason(s), then tap Send to finish');
@@ -1216,10 +1224,7 @@
     }
 
     if (jobComplete === 'No') {
-      const checkedReasons = document.querySelectorAll('.reason-check:checked');
-      debugPanel.style.display = 'block';
-      debugRaw.textContent = 'jobComplete=' + JSON.stringify(jobComplete) + ' | checked count=' + checkedReasons.length + ' | values=' + Array.from(checkedReasons).map(cb => cb.value).join(',');
-      checkedReasons.forEach(cb => {
+      document.querySelectorAll('.reason-check:checked').forEach(cb => {
         formData.append(ENTRY_WHY_NOT, cb.value);
       });
       const otherVal = otherInput.value.trim();
@@ -1297,8 +1302,7 @@
   function showSubmitSuccess() {
     resultCard.classList.remove('show');
     capturePreview.style.display = 'none';
-    // debugPanel intentionally left visible here while diagnosing the
-    // Why-Not submission issue — TEMPORARY, restore the hide once fixed.
+    debugPanel.style.display = 'none';
     manualWrap.classList.remove('show');
     equipmentSection.style.display = 'none';
     completeSection.style.display = 'none';
@@ -1314,6 +1318,8 @@
     });
     otherInput.value = '';
     planLocationInput.value = '';
+    btnCompleteYes.classList.remove('complete-selected');
+    btnCompleteNo.classList.remove('complete-selected');
     btnSubmit.classList.remove('ready-to-send');
 
     btnSubmit.disabled = true;
