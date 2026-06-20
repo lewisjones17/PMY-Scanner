@@ -329,6 +329,12 @@
     margin-left: auto;
   }
 
+  .btn-small-full {
+    width: 100%;
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
   .capture-preview {
     background: rgba(244,240,230,0.06);
     border-radius: 14px;
@@ -552,8 +558,9 @@
           <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="btn-small" id="btn-submit" disabled>Send →</button>
     </div>
+
+    <button class="btn-primary btn-small-full" id="btn-submit" disabled>Send to install form →</button>
 
     <div id="manual-wrap">
       <input id="manual-input" type="text" placeholder="Type Mac digits manually" autocapitalize="characters" autocomplete="off">
