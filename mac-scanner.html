@@ -143,7 +143,7 @@
     margin-bottom: 20px;
   }
 
-  #name-input {
+  #name-input, #job-input, #venue-input, #job-input-2, #venue-input-2 {
     width: 100%;
     background: var(--sand);
     color: var(--ink);
@@ -155,7 +155,12 @@
     text-align: center;
     margin-bottom: 12px;
   }
-  #name-input:focus { outline: 2px solid var(--turf-light); }
+  #name-input:focus, #job-input:focus, #venue-input:focus,
+  #job-input-2:focus, #venue-input-2:focus { outline: 2px solid var(--turf-light); }
+
+  .name-gate-card p strong {
+    color: var(--sand);
+  }
 
   main {
     flex: 1;
@@ -500,10 +505,42 @@
           <path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" stroke-linecap="round"/>
         </svg>
       </div>
-      <h2>What's your name?</h2>
+      <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="e.g. Ivan" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan" autocomplete="off" autocapitalize="words">
+      <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
+      <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
+    </div>
+  </div>
+
+  <div id="confirm-gate" class="name-gate hidden">
+    <div class="name-gate-card">
+      <div class="name-gate-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 id="confirm-heading">Still here?</h2>
+      <p id="confirm-subtext">Job <strong id="confirm-job-display"></strong> at <strong id="confirm-venue-display"></strong></p>
+      <button class="btn-primary" id="btn-confirm-yes" style="margin-bottom:10px;">Yes, continue →</button>
+      <button class="btn-ghost" id="btn-confirm-no" style="width:100%; justify-content:center;">No, new job/structure</button>
+    </div>
+  </div>
+
+  <div id="update-gate" class="name-gate hidden">
+    <div class="name-gate-card">
+      <div class="name-gate-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2>New job / structure</h2>
+      <p>This updates what gets sent with every scan.</p>
+      <input id="job-input-2" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
+      <input id="venue-input-2" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
+      <button class="btn-primary" id="btn-save-update">Save & continue</button>
     </div>
   </div>
 
@@ -590,49 +627,133 @@
 <script>
 (function () {
   const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
-  const ENTRY_ID  = "entry.846307";
-  const NAME_ENTRY_ID = "entry.REPLACE_ME"; // <-- swap in the real entry ID once you have it
-  const NAME_STORAGE_KEY = "pmy_installer_name";
+  const ENTRY_ID       = "entry.846307";
+  const NAME_ENTRY_ID  = "entry.REPLACE_ME";  // installer name field
+  const JOB_ENTRY_ID   = "entry.REPLACE_ME2"; // job number field
+  const VENUE_ENTRY_ID = "entry.REPLACE_ME3"; // structure/location field
+
+  const STORAGE_KEY = "pmy_installer_session";
 
   // ---------------------------------------------------------------
-  // INSTALLER NAME GATE — ask once per device, remember forever
+  // SETUP GATES — first-use form, then confirm-or-update each time
   // ---------------------------------------------------------------
-  const nameGate    = document.getElementById('name-gate');
-  const nameInput   = document.getElementById('name-input');
-  const btnSaveName = document.getElementById('btn-save-name');
+  const nameGate     = document.getElementById('name-gate');
+  const confirmGate  = document.getElementById('confirm-gate');
+  const updateGate   = document.getElementById('update-gate');
+
+  const nameInput    = document.getElementById('name-input');
+  const jobInput     = document.getElementById('job-input');
+  const venueInput   = document.getElementById('venue-input');
+  const btnSaveName  = document.getElementById('btn-save-name');
+
+  const confirmJobDisplay   = document.getElementById('confirm-job-display');
+  const confirmVenueDisplay = document.getElementById('confirm-venue-display');
+  const btnConfirmYes = document.getElementById('btn-confirm-yes');
+  const btnConfirmNo  = document.getElementById('btn-confirm-no');
+
+  const jobInput2    = document.getElementById('job-input-2');
+  const venueInput2  = document.getElementById('venue-input-2');
+  const btnSaveUpdate = document.getElementById('btn-save-update');
+
   const installerTag = document.getElementById('installer-tag');
 
-  let installerName = localStorage.getItem(NAME_STORAGE_KEY);
+  function getSession() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
+    catch (e) { return null; }
+  }
+  function setSession(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
 
-  function showNameTag() {
-    if (!installerName) { installerTag.style.display = 'none'; return; }
+  let session = getSession();
+
+  function hideAllGates() {
+    nameGate.classList.add('hidden');
+    confirmGate.classList.add('hidden');
+    updateGate.classList.add('hidden');
+  }
+
+  function showInstallerTag() {
+    if (!session || !session.name) { installerTag.style.display = 'none'; return; }
     installerTag.style.display = 'inline';
-    installerTag.innerHTML = 'Hi, ' + installerName + '<button id="btn-change-name">not you?</button>';
+    installerTag.innerHTML = 'Hi, ' + session.name + '<button id="btn-change-name">reset</button>';
     document.getElementById('btn-change-name').addEventListener('click', () => {
+      hideAllGates();
       nameGate.classList.remove('hidden');
-      nameInput.value = installerName;
+      nameInput.value = session.name || '';
+      jobInput.value = session.job || '';
+      venueInput.value = session.venue || '';
       nameInput.focus();
     });
   }
 
-  function saveInstallerName() {
-    const val = nameInput.value.trim();
-    if (!val) { nameInput.focus(); return; }
-    installerName = val;
-    localStorage.setItem(NAME_STORAGE_KEY, val);
-    nameGate.classList.add('hidden');
-    showNameTag();
+  function goToConfirmScreen() {
+    hideAllGates();
+    confirmGate.classList.remove('hidden');
+    confirmJobDisplay.textContent = session.job;
+    confirmVenueDisplay.textContent = session.venue;
   }
 
-  btnSaveName.addEventListener('click', saveInstallerName);
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') saveInstallerName();
+  // First-time save: name + job + structure together
+  btnSaveName.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    const job = jobInput.value.trim();
+    const venue = venueInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    if (!job) { jobInput.focus(); return; }
+    if (!venue) { venueInput.focus(); return; }
+    session = { name, job, venue };
+    setSession(session);
+    hideAllGates();
+    showInstallerTag();
   });
 
-  if (installerName) {
-    nameGate.classList.add('hidden');
-    showNameTag();
+  [nameInput, jobInput, venueInput].forEach((el, i, arr) => {
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (i < arr.length - 1) { arr[i + 1].focus(); }
+      else { btnSaveName.click(); }
+    });
+  });
+
+  // Confirm screen: Yes keeps job/structure, No opens the update form
+  btnConfirmYes.addEventListener('click', () => {
+    hideAllGates();
+  });
+
+  btnConfirmNo.addEventListener('click', () => {
+    hideAllGates();
+    updateGate.classList.remove('hidden');
+    jobInput2.value = session.job || '';
+    venueInput2.value = session.venue || '';
+    jobInput2.focus();
+  });
+
+  btnSaveUpdate.addEventListener('click', () => {
+    const job = jobInput2.value.trim();
+    const venue = venueInput2.value.trim();
+    if (!job) { jobInput2.focus(); return; }
+    if (!venue) { venueInput2.focus(); return; }
+    session.job = job;
+    session.venue = venue;
+    setSession(session);
+    hideAllGates();
+  });
+
+  [jobInput2, venueInput2].forEach((el, i, arr) => {
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (i < arr.length - 1) { arr[i + 1].focus(); }
+      else { btnSaveUpdate.click(); }
+    });
+  });
+
+  // Decide what to show on load
+  if (session && session.name && session.job && session.venue) {
+    showInstallerTag();
+    goToConfirmScreen();
   } else {
+    nameGate.classList.remove('hidden');
     nameInput.focus();
   }
 
@@ -939,8 +1060,16 @@
   btnSubmit.addEventListener('click', () => {
     if (!currentValue) return;
     let url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
-    if (installerName && NAME_ENTRY_ID && NAME_ENTRY_ID !== 'entry.REPLACE_ME') {
-      url += '&' + NAME_ENTRY_ID + '=' + encodeURIComponent(installerName);
+    if (session) {
+      if (session.name && NAME_ENTRY_ID && !NAME_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + NAME_ENTRY_ID + '=' + encodeURIComponent(session.name);
+      }
+      if (session.job && JOB_ENTRY_ID && !JOB_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + JOB_ENTRY_ID + '=' + encodeURIComponent(session.job);
+      }
+      if (session.venue && VENUE_ENTRY_ID && !VENUE_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + VENUE_ENTRY_ID + '=' + encodeURIComponent(session.venue);
+      }
     }
     window.location.href = url;
   });
