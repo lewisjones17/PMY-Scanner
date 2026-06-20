@@ -708,6 +708,8 @@
   const ENTRY_COMPLETE   = "entry.1990645547"; // Job Complete? (Yes/No)
   const ENTRY_WHY_NOT    = "entry.1158375980"; // Why Not? [Why] (checkbox, multi)
   const ENTRY_OTHER      = "entry.544145334";  // Other (text)
+  const ENTRY_PHOTO      = "entry.68415372";   // Capture Photo (link, text)
+  const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
   const STORAGE_KEY = "pmy_installer_session";
 
@@ -865,6 +867,7 @@
   const planLocationInput = document.getElementById('plan-location-input');
 
   let jobComplete = null; // 'Yes' | 'No' | null
+  let capturedPhotoDataUrl = null; // most recent captured image, for upload on submit
 
   let scanning      = false;
   let currentValue  = null;
@@ -1023,6 +1026,7 @@
       // the photo without digging into a debug panel.
       capturePreview.style.display = 'block';
       capturePreviewImg.src = dataUrl;
+      capturedPhotoDataUrl = dataUrl;
 
       debugPanel.style.display = 'block';
 
@@ -1101,6 +1105,7 @@
   btnManualUse.addEventListener('click', () => {
     const val = manualInput.value.trim();
     if (!val) { showToast('Type a value first'); return; }
+    capturedPhotoDataUrl = null; // no photo for a manually-typed entry
     setResult(val, 'manual');
   });
 
@@ -1156,14 +1161,45 @@
 
   let submitting = false;
 
+  // Upload the captured photo to the Apps Script web app, which saves it
+  // to Drive and hands back a shareable link. Returns null if there's no
+  // photo to upload (e.g. manual entry) or if the upload itself fails —
+  // either way, the job submission should still proceed without blocking.
+  async function uploadPhotoIfPresent() {
+    if (!capturedPhotoDataUrl) return null;
+    try {
+      const response = await fetch(PHOTO_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          image: capturedPhotoDataUrl,
+          filename: 'scan_' + Date.now() + '.png'
+        })
+      });
+      const result = await response.json();
+      if (result.success) return result.link;
+      console.error('Photo upload failed:', result.error);
+      return null;
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      return null;
+    }
+  }
+
   async function submitJob() {
     if (!currentValue || submitting) return;
     submitting = true;
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Sending…';
+    btnSubmit.textContent = 'Uploading photo…';
 
     try {
+      const photoLink = await uploadPhotoIfPresent();
+
+      btnSubmit.textContent = 'Sending…';
       const formData = buildFormData();
+      if (photoLink) {
+        formData.append(ENTRY_PHOTO, photoLink);
+      }
 
       // Google Forms' formResponse endpoint doesn't return readable CORS
       // data to JS, so the fetch always looks like it "fails" even on
@@ -1198,6 +1234,7 @@
     reasonsSection.style.display = 'none';
     currentValue = null;
     jobComplete = null;
+    capturedPhotoDataUrl = null;
     submitting = false;
 
     document.querySelectorAll('.equip-check, .reason-check').forEach(cb => cb.checked = false);
