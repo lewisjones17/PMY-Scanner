@@ -161,6 +161,13 @@
     color: var(--sand);
   }
 
+  .gate-copyright {
+    font-size: 10px;
+    color: var(--grey);
+    margin-top: 22px;
+    opacity: 0.7;
+  }
+
   main {
     flex: 1;
     display: flex;
@@ -442,6 +449,15 @@
 
   .btn-ghost svg { width: 18px; height: 18px; }
 
+  .btn-secondary {
+    background: rgba(244,240,230,0.08);
+    color: var(--sand);
+    border: 1px solid rgba(244,240,230,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .btn-torch-active {
     background: var(--flag) !important;
     border-color: var(--flag) !important;
@@ -511,6 +527,7 @@
     font-size: 11px;
     color: var(--grey);
     letter-spacing: 0.03em;
+    line-height: 1.6;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -550,10 +567,11 @@
       </div>
       <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan or Jason Seagul" autocomplete="off" autocapitalize="words">
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution prohibited.</div>
     </div>
   </div>
 
@@ -568,6 +586,7 @@
       <p id="confirm-subtext">Job <strong id="confirm-job-display"></strong> at <strong id="confirm-venue-display"></strong></p>
       <button class="btn-primary" id="btn-confirm-yes" style="margin-bottom:10px;">Yes, continue →</button>
       <button class="btn-ghost" id="btn-confirm-no" style="width:100%; justify-content:center;">No, new job/structure</button>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution prohibited.</div>
     </div>
   </div>
 
@@ -584,6 +603,7 @@
       <input id="job-input-2" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input-2" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-update">Save & continue</button>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution prohibited.</div>
     </div>
   </div>
 
@@ -621,7 +641,7 @@
       <button class="btn-primary btn-large" id="btn-capture" style="display:none;">Capture</button>
     </div>
 
-    <button class="btn-ghost btn-small-full" id="btn-skip-scan" style="justify-content:center; margin-top:-4px;">Skip — couldn't scan</button>
+    <button class="btn-secondary btn-small-full" id="btn-skip-scan">Skip — couldn't scan</button>
 
     <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
@@ -690,7 +710,7 @@
 
   </main>
 
-  <footer>PMY OPEN 2026 · Install tracking · Start here for every job</footer>
+  <footer>PMY OPEN 2026 · Install tracking · Start here for every job<br>© Lewis Jones 2026. Unauthorized copying or distribution prohibited.</footer>
 
 </div>
 
