@@ -362,6 +362,50 @@
     display: block;
   }
 
+  .form-section {
+    background: rgba(244,240,230,0.06);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--turf-light);
+    margin-bottom: 10px;
+  }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    font-size: 14px;
+    color: var(--sand);
+    border-bottom: 1px solid rgba(244,240,230,0.08);
+  }
+  .check-row:last-of-type { border-bottom: none; }
+
+  .check-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--turf);
+    flex-shrink: 0;
+  }
+
+  #other-input, #plan-location-input {
+    width: 100%;
+    background: var(--sand);
+    color: var(--ink);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+  #other-input:focus, #plan-location-input:focus { outline: 2px solid var(--turf-light); }
+
   button {
     font-family: inherit;
     border: none;
@@ -584,6 +628,34 @@
       <img id="capture-preview-img">
     </div>
 
+    <div id="equipment-section" class="form-section" style="display:none;">
+      <div class="section-label">Location (Number on plan or describe!)</div>
+      <input id="plan-location-input" type="text" placeholder="e.g. 12, or describe the spot" autocomplete="off" style="margin-bottom:14px;">
+      <div class="section-label">Equipment installed</div>
+      <label class="check-row"><input type="checkbox" value="55 inch Tv" class="equip-check"> 55 inch Tv</label>
+      <label class="check-row"><input type="checkbox" value="43 inch tv" class="equip-check"> 43 inch tv</label>
+      <label class="check-row"><input type="checkbox" value="Stand" class="equip-check"> Stand</label>
+      <label class="check-row"><input type="checkbox" value="Exterity" class="equip-check"> Exterity</label>
+    </div>
+
+    <div id="complete-section" class="form-section" style="display:none;">
+      <div class="section-label">Job Complete?</div>
+      <div class="actions">
+        <button class="btn-primary" id="btn-complete-yes">Yes</button>
+        <button class="btn-ghost" id="btn-complete-no" style="justify-content:center;">No</button>
+      </div>
+    </div>
+
+    <div id="reasons-section" class="form-section" style="display:none;">
+      <div class="section-label">Why Not?</div>
+      <label class="check-row"><input type="checkbox" value="No Poe" class="reason-check"> No Poe</label>
+      <label class="check-row"><input type="checkbox" value="No Cat5" class="reason-check"> No Cat5</label>
+      <label class="check-row"><input type="checkbox" value="No Power installed" class="reason-check"> No Power installed</label>
+      <label class="check-row"><input type="checkbox" value="Power NOT On" class="reason-check"> Power NOT On</label>
+      <label class="check-row"><input type="checkbox" value="No Furniture" class="reason-check"> No Furniture</label>
+      <input id="other-input" type="text" placeholder="Other (optional)" autocomplete="off" style="margin-top:10px;">
+    </div>
+
     <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
@@ -627,10 +699,16 @@
 <script>
 (function () {
   const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
-  const ENTRY_ID       = "entry.846307";
-  const NAME_ENTRY_ID  = "entry.REPLACE_ME";  // installer name field
-  const JOB_ENTRY_ID   = "entry.REPLACE_ME2"; // job number field
-  const VENUE_ENTRY_ID = "entry.REPLACE_ME3"; // structure/location field
+  const FORM_RESPONSE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/formResponse";
+  const ENTRY_NAME       = "entry.682346255";  // installer Name
+  const ENTRY_LOCATION   = "entry.1961882643"; // Location/Structure Name
+  const ENTRY_JOB        = "entry.1728239759"; // JOB NUMBER
+  const ENTRY_PLAN       = "entry.1133003866"; // Location (Number on plan or describe!)
+  const ENTRY_EQUIPMENT  = "entry.1043809043"; // Equipment installed (checkbox, multi)
+  const ENTRY_ID         = "entry.846307";     // Exterity Mac (LAST 6 DIGITS)
+  const ENTRY_COMPLETE   = "entry.1990645547"; // Job Complete? (Yes/No)
+  const ENTRY_WHY_NOT    = "entry.1158375980"; // Why Not? [Why] (checkbox, multi)
+  const ENTRY_OTHER      = "entry.544145334";  // Other (text)
 
   const STORAGE_KEY = "pmy_installer_session";
 
@@ -779,6 +857,15 @@
   const debugRaw          = document.getElementById('debug-raw');
   const capturePreview    = document.getElementById('capture-preview');
   const capturePreviewImg = document.getElementById('capture-preview-img');
+  const equipmentSection  = document.getElementById('equipment-section');
+  const completeSection   = document.getElementById('complete-section');
+  const reasonsSection    = document.getElementById('reasons-section');
+  const btnCompleteYes    = document.getElementById('btn-complete-yes');
+  const btnCompleteNo     = document.getElementById('btn-complete-no');
+  const otherInput        = document.getElementById('other-input');
+  const planLocationInput = document.getElementById('plan-location-input');
+
+  let jobComplete = null; // 'Yes' | 'No' | null
 
   let scanning      = false;
   let currentValue  = null;
@@ -801,6 +888,8 @@
     if (source === 'capture' && navigator.vibrate) navigator.vibrate(60);
     resultValue.focus();
     resultValue.select();
+    equipmentSection.style.display = 'block';
+    completeSection.style.display = 'block';
   }
 
   resultValue.addEventListener('input', () => {
@@ -1020,22 +1109,133 @@
     if (e.key === 'Enter') btnManualUse.click();
   });
 
-  btnSubmit.addEventListener('click', () => {
-    if (!currentValue) return;
-    let url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
-    if (session) {
-      if (session.name && NAME_ENTRY_ID && !NAME_ENTRY_ID.includes('REPLACE')) {
-        url += '&' + NAME_ENTRY_ID + '=' + encodeURIComponent(session.name);
-      }
-      if (session.job && JOB_ENTRY_ID && !JOB_ENTRY_ID.includes('REPLACE')) {
-        url += '&' + JOB_ENTRY_ID + '=' + encodeURIComponent(session.job);
-      }
-      if (session.venue && VENUE_ENTRY_ID && !VENUE_ENTRY_ID.includes('REPLACE')) {
-        url += '&' + VENUE_ENTRY_ID + '=' + encodeURIComponent(session.venue);
-      }
-    }
-    window.location.href = url;
+  btnCompleteYes.addEventListener('click', () => {
+    jobComplete = 'Yes';
+    reasonsSection.style.display = 'none';
+    btnCompleteYes.classList.add('btn-primary');
+    btnCompleteNo.classList.remove('btn-primary');
+    submitJob();
   });
+
+  btnCompleteNo.addEventListener('click', () => {
+    jobComplete = 'No';
+    reasonsSection.style.display = 'block';
+    showToast('Select the reason(s), then it will send automatically');
+  });
+
+  // Auto-submit once at least one reason is ticked when job is incomplete,
+  // mirroring the real form's flow without needing an extra explicit button.
+  document.querySelectorAll('.reason-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const anyChecked = document.querySelectorAll('.reason-check:checked').length > 0;
+      if (anyChecked && jobComplete === 'No') submitJob();
+    });
+  });
+
+  function buildFormData() {
+    const formData = new FormData();
+    formData.append(ENTRY_ID, currentValue);
+
+    if (session) {
+      if (session.name)  formData.append(ENTRY_NAME, session.name);
+      if (session.job)   formData.append(ENTRY_JOB, session.job);
+      if (session.venue) formData.append(ENTRY_LOCATION, session.venue);
+    }
+
+    document.querySelectorAll('.equip-check:checked').forEach(cb => {
+      formData.append(ENTRY_EQUIPMENT, cb.value);
+    });
+
+    const planVal = planLocationInput.value.trim();
+    if (planVal) formData.append(ENTRY_PLAN, planVal);
+
+    if (jobComplete) {
+      formData.append(ENTRY_COMPLETE, jobComplete);
+    }
+
+    if (jobComplete === 'No') {
+      document.querySelectorAll('.reason-check:checked').forEach(cb => {
+        formData.append(ENTRY_WHY_NOT, cb.value);
+      });
+      const otherVal = otherInput.value.trim();
+      if (otherVal) formData.append(ENTRY_OTHER, otherVal);
+    }
+
+    return formData;
+  }
+
+  let submitting = false;
+
+  async function submitJob() {
+    if (!currentValue || submitting) return;
+    submitting = true;
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Sending…';
+
+    try {
+      const formData = buildFormData();
+
+      // Google Forms' formResponse endpoint doesn't return readable CORS
+      // data to JS, so the fetch always looks like it "fails" even on
+      // success. mode: 'no-cors' just fires the POST and moves on —
+      // there's no reliable way to confirm success/failure from here.
+      await fetch(FORM_RESPONSE_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData
+      });
+
+      showSubmitSuccess();
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      submitting = false;
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Send to install form →';
+      showToast('Could not send — check connection and try again');
+    }
+  }
+
+  btnSubmit.addEventListener('click', submitJob);
+
+  function showSubmitSuccess() {
+    resultCard.classList.remove('show');
+    capturePreview.style.display = 'none';
+    debugPanel.style.display = 'none';
+    manualWrap.classList.remove('show');
+    equipmentSection.style.display = 'none';
+    completeSection.style.display = 'none';
+    reasonsSection.style.display = 'none';
+    currentValue = null;
+    jobComplete = null;
+    submitting = false;
+
+    document.querySelectorAll('.equip-check, .reason-check').forEach(cb => cb.checked = false);
+    otherInput.value = '';
+    planLocationInput.value = '';
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Send to install form →';
+
+    // Reset the scan UI back to a clean "ready for the next one" state
+    placeholder.style.display = 'flex';
+    guideBox.style.display = 'none';
+    scanState.style.display = 'none';
+    btnCamera.style.display = 'block';
+    btnCamera.textContent = 'Start camera';
+    btnCamera.disabled = false;
+    btnCapture.style.display = 'none';
+    scanning = false;
+
+    if (activeTrack) {
+      activeTrack.stop();
+      activeTrack = null;
+    }
+    btnTorch.style.display = 'none';
+
+    showToast('Submitted — ready for the next one');
+    if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+  }
 
 })();
 </script>
