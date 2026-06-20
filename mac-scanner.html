@@ -567,7 +567,7 @@
       </div>
       <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan or Jason Seagul" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan" autocomplete="off" autocapitalize="words">
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
@@ -1122,11 +1122,16 @@
   btnCapture.addEventListener('click', captureAndRead);
 
   btnSkipScan.addEventListener('click', () => {
-    // Deliberate "give up on scanning" path — fills a clear marker into
-    // the Mac field rather than leaving it blank, so it's obvious in the
-    // spreadsheet why it's empty. Any photo already captured (e.g. the
-    // installer tried scanning a few times before giving up) is kept and
-    // still gets uploaded, since it's useful for the engineer either way.
+    // Require a photo to exist before allowing skip — otherwise an
+    // installer could tap Skip without ever attempting a capture, leaving
+    // the engineer with nothing to fault-find against. Deliberate "give up
+    // on scanning" path: fills a clear marker into the Mac field rather
+    // than leaving it blank, so it's obvious in the spreadsheet why it's
+    // empty, while keeping whatever photo was captured for reference.
+    if (!capturedPhotoDataUrl) {
+      showToast('Take a photo first (tap Capture), then Skip if it won\u2019t read');
+      return;
+    }
     setResult('Could not scan', 'skip');
   });
 
