@@ -657,7 +657,7 @@
       <label class="check-row"><input type="checkbox" value="55 inch Tv" class="equip-check"> 55 inch Tv</label>
       <label class="check-row"><input type="checkbox" value="43 inch tv" class="equip-check"> 43 inch tv</label>
       <label class="check-row"><input type="checkbox" value="Stand" class="equip-check"> Stand</label>
-      <label class="check-row"><input type="checkbox" value="Exterity" class="equip-check"> Exterity</label>
+      <label class="check-row"><input type="checkbox" value="Exterity" class="equip-check" checked> Exterity</label>
     </div>
 
     <div id="complete-section" class="form-section" style="display:none;">
@@ -1237,7 +1237,10 @@
     capturedPhotoDataUrl = null;
     submitting = false;
 
-    document.querySelectorAll('.equip-check, .reason-check').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.reason-check').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.equip-check').forEach(cb => {
+      cb.checked = (cb.value === 'Exterity'); // Exterity is on virtually every job
+    });
     otherInput.value = '';
     planLocationInput.value = '';
 
