@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -617,6 +616,29 @@
       <div class="scan-state" id="scan-state" style="display:none;">Tap Capture when lined up</div>
     </div>
 
+    <div class="camera-actions">
+      <button class="btn-primary btn-large" id="btn-camera">Start camera</button>
+      <button class="btn-primary btn-large" id="btn-capture" style="display:none;">Capture</button>
+    </div>
+
+    <div class="actions actions-secondary">
+      <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 2h6l-1 7h3l-8 13 1-9H7l2-11z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="manual-wrap">
+      <input id="manual-input" type="text" placeholder="Type Mac digits manually" autocapitalize="characters" autocomplete="off">
+      <button class="btn-primary" id="btn-manual-use" style="flex:0 0 auto; width:84px;">Use</button>
+    </div>
+
     <div class="result-card" id="result-card">
       <div class="result-label">Exterity Mac (confirm or correct)</div>
       <input class="result-value" id="result-value" type="text" autocapitalize="characters" autocomplete="off" inputmode="text">
@@ -656,30 +678,7 @@
       <input id="other-input" type="text" placeholder="Other (optional)" autocomplete="off" style="margin-top:10px;">
     </div>
 
-    <div class="actions actions-secondary">
-      <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 2h6l-1 7h3l-8 13 1-9H7l2-11z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 17.25V20h2.75L20 6.75 17.25 4 4 17.25z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
-
     <button class="btn-primary btn-small-full" id="btn-submit" disabled>Send to install form →</button>
-
-    <div id="manual-wrap">
-      <input id="manual-input" type="text" placeholder="Type Mac digits manually" autocapitalize="characters" autocomplete="off">
-      <button class="btn-primary" id="btn-manual-use" style="flex:0 0 auto; width:84px;">Use</button>
-    </div>
-
-    <div class="camera-actions">
-      <button class="btn-primary btn-large" id="btn-camera">Start camera</button>
-      <button class="btn-primary btn-large" id="btn-capture" style="display:none;">Capture</button>
-    </div>
 
     <div id="debug-panel" style="display:none; background:rgba(244,240,230,0.06); border-radius:12px; padding:10px; font-size:11px; color:var(--grey);">
       <div>Raw OCR text: <span id="debug-raw" style="color:var(--turf-light); font-family:monospace;"></span></div>
@@ -1120,16 +1119,7 @@
   btnCompleteNo.addEventListener('click', () => {
     jobComplete = 'No';
     reasonsSection.style.display = 'block';
-    showToast('Select the reason(s), then it will send automatically');
-  });
-
-  // Auto-submit once at least one reason is ticked when job is incomplete,
-  // mirroring the real form's flow without needing an extra explicit button.
-  document.querySelectorAll('.reason-check').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const anyChecked = document.querySelectorAll('.reason-check:checked').length > 0;
-      if (anyChecked && jobComplete === 'No') submitJob();
-    });
+    showToast('Select the reason(s), then tap Send');
   });
 
   function buildFormData() {
@@ -1242,4 +1232,3 @@
 
 </body>
 </html>
-```
