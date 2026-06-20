@@ -576,7 +576,7 @@
       </div>
       <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan or Jason Seagull" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan" autocomplete="off" autocapitalize="words">
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
@@ -1216,7 +1216,10 @@
     }
 
     if (jobComplete === 'No') {
-      document.querySelectorAll('.reason-check:checked').forEach(cb => {
+      const checkedReasons = document.querySelectorAll('.reason-check:checked');
+      debugPanel.style.display = 'block';
+      debugRaw.textContent = 'jobComplete=' + JSON.stringify(jobComplete) + ' | checked count=' + checkedReasons.length + ' | values=' + Array.from(checkedReasons).map(cb => cb.value).join(',');
+      checkedReasons.forEach(cb => {
         formData.append(ENTRY_WHY_NOT, cb.value);
       });
       const otherVal = otherInput.value.trim();
@@ -1294,7 +1297,8 @@
   function showSubmitSuccess() {
     resultCard.classList.remove('show');
     capturePreview.style.display = 'none';
-    debugPanel.style.display = 'none';
+    // debugPanel intentionally left visible here while diagnosing the
+    // Why-Not submission issue — TEMPORARY, restore the hide once fixed.
     manualWrap.classList.remove('show');
     equipmentSection.style.display = 'none';
     completeSection.style.display = 'none';
