@@ -1,3 +1,6 @@
+Caught a real bug before handing this over — there's a **duplicate declaration** of `btnSkipScan` (two identical `const btnSkipScan = ...` lines back to back), which would throw a JavaScript syntax error and break the entire script. Let me fix that first.Good, fixed. Let's re-verify everything before giving you the corrected raw code:Good — that's a clean check. Those four "duplicates" (`job`, `venue`, `gray`, `formData`) are all `const` declared inside **separate function scopes**, not actual conflicts — that's perfectly valid JavaScript since each function has its own block scope. No real issue there. The `btnSkipScan` duplicate is genuinely fixed now, and everything else checks out.Good catch on my end before this went out — here's the corrected raw code:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -621,6 +624,8 @@
       <button class="btn-primary btn-large" id="btn-capture" style="display:none;">Capture</button>
     </div>
 
+    <button class="btn-ghost btn-small-full" id="btn-skip-scan" style="justify-content:center; margin-top:-4px;">Skip — couldn't scan</button>
+
     <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
@@ -844,6 +849,7 @@
   const scanState         = document.getElementById('scan-state');
   const btnCamera         = document.getElementById('btn-camera');
   const btnCapture        = document.getElementById('btn-capture');
+  const btnSkipScan       = document.getElementById('btn-skip-scan');
   const btnSubmit         = document.getElementById('btn-submit');
   const btnManualToggle   = document.getElementById('btn-manual-toggle');
   const btnTorch          = document.getElementById('btn-torch');
@@ -881,12 +887,28 @@
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
+  // The bottom Send button should only ever be usable once Job Complete?
+  // has actually been answered — MAC alone (even blank, via Skip) isn't
+  // enough, since tapping it earlier was submitting with no completion
+  // status at all. The real submit paths are "Yes" (auto-submits) and
+  // ticking a Why-Not reason under "No" (also auto-submits) — this button
+  // is mainly a safety-net retry if one of those auto-submits failed.
+  function updateSubmitButtonState() {
+    btnSubmit.disabled = !jobComplete;
+  }
+
   function setResult(value, source) {
     currentValue = value.trim();
     resultValue.value = currentValue;
-    resultMetaText.textContent = source === 'manual' ? 'Entered manually' : 'Captured — check it\u2019s correct';
+    if (source === 'manual') {
+      resultMetaText.textContent = 'Entered manually';
+    } else if (source === 'skip') {
+      resultMetaText.textContent = 'Marked as not scanned';
+    } else {
+      resultMetaText.textContent = 'Captured — check it\u2019s correct';
+    }
     resultCard.classList.add('show');
-    btnSubmit.disabled = !currentValue;
+    updateSubmitButtonState();
     if (source === 'capture' && navigator.vibrate) navigator.vibrate(60);
     resultValue.focus();
     resultValue.select();
@@ -896,7 +918,6 @@
 
   resultValue.addEventListener('input', () => {
     currentValue = resultValue.value.trim();
-    btnSubmit.disabled = !currentValue;
   });
 
   async function startCamera() {
@@ -1083,6 +1104,15 @@
   btnCamera.addEventListener('click', startCamera);
   btnCapture.addEventListener('click', captureAndRead);
 
+  btnSkipScan.addEventListener('click', () => {
+    // Deliberate "give up on scanning" path — fills a clear marker into
+    // the Mac field rather than leaving it blank, so it's obvious in the
+    // spreadsheet why it's empty. Any photo already captured (e.g. the
+    // installer tried scanning a few times before giving up) is kept and
+    // still gets uploaded, since it's useful for the engineer either way.
+    setResult('Could not scan', 'skip');
+  });
+
   btnTorch.addEventListener('click', () => {
     setTorch(!torchOn);
   });
@@ -1118,18 +1148,22 @@
     reasonsSection.style.display = 'none';
     btnCompleteYes.classList.add('btn-primary');
     btnCompleteNo.classList.remove('btn-primary');
+    updateSubmitButtonState();
     submitJob();
   });
 
   btnCompleteNo.addEventListener('click', () => {
     jobComplete = 'No';
     reasonsSection.style.display = 'block';
+    updateSubmitButtonState();
     showToast('Select the reason(s), then tap Send');
   });
 
   function buildFormData() {
     const formData = new FormData();
-    formData.append(ENTRY_ID, currentValue);
+    if (currentValue) {
+      formData.append(ENTRY_ID, currentValue);
+    }
 
     if (session) {
       if (session.name)  formData.append(ENTRY_NAME, session.name);
@@ -1187,7 +1221,7 @@
   }
 
   async function submitJob() {
-    if (!currentValue || submitting) return;
+    if (!jobComplete || submitting) return;
     submitting = true;
     btnSubmit.disabled = true;
     btnSubmit.textContent = 'Uploading photo…';
@@ -1272,3 +1306,4 @@
 
 </body>
 </html>
+```
