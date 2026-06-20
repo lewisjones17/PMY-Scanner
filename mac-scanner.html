@@ -627,7 +627,6 @@
 <script>
 (function () {
   const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
-  const FORM_RESPONSE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/formResponse";
   const ENTRY_ID       = "entry.846307";
   const NAME_ENTRY_ID  = "entry.REPLACE_ME";  // installer name field
   const JOB_ENTRY_ID   = "entry.REPLACE_ME2"; // job number field
@@ -855,7 +854,6 @@
       scanning = true;
       btnCamera.style.display = 'none';
       btnCapture.style.display = 'block';
-      startBrightnessWatch();
 
     } catch (err) {
       btnCamera.textContent = 'Start camera';
@@ -1007,49 +1005,6 @@
       .catch(() => {});
   }
 
-  // Low-light auto-torch: sample average brightness from the video feed
-  // every second using an offscreen canvas, and switch the torch on
-  // automatically if it's dark.
-  let brightnessInterval = null;
-
-  function startBrightnessWatch() {
-    if (!activeTrack) return;
-    const caps = activeTrack.getCapabilities ? activeTrack.getCapabilities() : {};
-    if (!caps.torch) return;
-
-    const bCanvas = document.createElement('canvas');
-    bCanvas.width = 64;
-    bCanvas.height = 64;
-    const bCtx = bCanvas.getContext('2d', { willReadFrequently: true });
-
-    brightnessInterval = setInterval(() => {
-      if (!scanning || video.readyState < 2) return;
-      try {
-        bCtx.drawImage(video, 0, 0, 64, 64);
-        const data = bCtx.getImageData(0, 0, 64, 64).data;
-        let total = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          total += (data[i] + data[i + 1] + data[i + 2]) / 3;
-        }
-        const avg = total / (data.length / 4);
-
-        if (avg < 60 && !torchOn) {
-          setTorch(true);
-          showToast('Low light — torch on');
-        } else if (avg > 110 && torchOn) {
-          setTorch(false);
-        }
-      } catch (e) { /* ignore transient read errors */ }
-    }, 1000);
-  }
-
-  function stopBrightnessWatch() {
-    if (brightnessInterval) {
-      clearInterval(brightnessInterval);
-      brightnessInterval = null;
-    }
-  }
-
   btnManualToggle.addEventListener('click', () => {
     manualWrap.classList.toggle('show');
     if (manualWrap.classList.contains('show')) manualInput.focus();
@@ -1065,76 +1020,22 @@
     if (e.key === 'Enter') btnManualUse.click();
   });
 
-  btnSubmit.addEventListener('click', async () => {
+  btnSubmit.addEventListener('click', () => {
     if (!currentValue) return;
-    btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Sending…';
-
-    try {
-      const formData = new FormData();
-      formData.append(ENTRY_ID, currentValue);
-      if (session) {
-        if (session.name && NAME_ENTRY_ID && !NAME_ENTRY_ID.includes('REPLACE')) {
-          formData.append(NAME_ENTRY_ID, session.name);
-        }
-        if (session.job && JOB_ENTRY_ID && !JOB_ENTRY_ID.includes('REPLACE')) {
-          formData.append(JOB_ENTRY_ID, session.job);
-        }
-        if (session.venue && VENUE_ENTRY_ID && !VENUE_ENTRY_ID.includes('REPLACE')) {
-          formData.append(VENUE_ENTRY_ID, session.venue);
-        }
+    let url = FORM_BASE + '?usp=pp_url&' + ENTRY_ID + '=' + encodeURIComponent(currentValue);
+    if (session) {
+      if (session.name && NAME_ENTRY_ID && !NAME_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + NAME_ENTRY_ID + '=' + encodeURIComponent(session.name);
       }
-
-      // Google Forms' formResponse endpoint doesn't return readable CORS
-      // data to JS, so the fetch always looks like it "fails" even on
-      // success. mode: 'no-cors' just fires the POST and moves on —
-      // there's no reliable way to confirm success/failure from here.
-      await fetch(FORM_RESPONSE_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: formData
-      });
-
-      showSubmitSuccess();
-
-    } catch (err) {
-      console.error('Submit error:', err);
-      btnSubmit.disabled = false;
-      btnSubmit.textContent = 'Send to install form →';
-      showToast('Could not send — check connection and try again');
+      if (session.job && JOB_ENTRY_ID && !JOB_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + JOB_ENTRY_ID + '=' + encodeURIComponent(session.job);
+      }
+      if (session.venue && VENUE_ENTRY_ID && !VENUE_ENTRY_ID.includes('REPLACE')) {
+        url += '&' + VENUE_ENTRY_ID + '=' + encodeURIComponent(session.venue);
+      }
     }
+    window.location.href = url;
   });
-
-  function showSubmitSuccess() {
-    resultCard.classList.remove('show');
-    capturePreview.style.display = 'none';
-    debugPanel.style.display = 'none';
-    manualWrap.classList.remove('show');
-    currentValue = null;
-
-    btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Send to install form →';
-
-    // Reset the scan UI back to a clean "ready for the next one" state
-    placeholder.style.display = 'flex';
-    guideBox.style.display = 'none';
-    scanState.style.display = 'none';
-    btnCamera.style.display = 'block';
-    btnCamera.textContent = 'Start camera';
-    btnCamera.disabled = false;
-    btnCapture.style.display = 'none';
-    scanning = false;
-
-    if (activeTrack) {
-      activeTrack.stop();
-      activeTrack = null;
-    }
-    stopBrightnessWatch();
-    btnTorch.style.display = 'none';
-
-    showToast('Submitted — ready for the next one');
-    if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
-  }
 
 })();
 </script>
