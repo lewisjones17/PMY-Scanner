@@ -1376,6 +1376,7 @@
     overlay.style.justifyContent = 'center';
     overlay.style.pointerEvents = 'none';
     overlay.style.zIndex = '2000';
+    overlay.style.overflow = 'hidden';
 
     const text = document.createElement('div');
     text.textContent = 'SO CLOSE';
@@ -1383,21 +1384,51 @@
     text.style.letterSpacing = '0.08em';
     text.style.color = 'var(--sand)';
     text.style.textShadow = '0 4px 24px rgba(0,0,0,0.5)';
-    text.style.fontSize = '15px';
-    text.style.transform = 'scale(1)';
+    text.style.fontSize = '24px';
     text.style.opacity = '0';
-    text.style.transition = 'transform 1.1s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease';
+    text.style.transformOrigin = 'center center';
 
     overlay.appendChild(text);
     document.body.appendChild(overlay);
 
-    requestAnimationFrame(() => {
-      text.style.opacity = '1';
-      text.style.transform = 'scale(11)';
-    });
+    const startTime = performance.now();
+    const zoomDuration = 3400;
+    const holdDuration = 700;
+    const fadeOutStart = zoomDuration + holdDuration;
+    const totalDuration = fadeOutStart + 500;
 
-    setTimeout(() => { text.style.opacity = '0'; }, 950);
-    setTimeout(() => { overlay.remove(); }, 1300);
+    const startScale = 1;
+    const endScale = 9;
+    const wobbleDegrees = 6;
+    const wobbleSpeed = 0.0045;
+
+    function frame(now) {
+      const elapsed = now - startTime;
+
+      if (elapsed <= zoomDuration) {
+        const t = elapsed / zoomDuration;
+        const eased = 1 - Math.pow(1 - t, 3);
+        const scale = startScale + (endScale - startScale) * eased;
+        const wobble = Math.sin(elapsed * wobbleSpeed) * wobbleDegrees;
+        text.style.opacity = Math.min(t * 4, 1);
+        text.style.transform = 'scale(' + scale + ') rotate(' + wobble + 'deg)';
+      } else if (elapsed <= fadeOutStart) {
+        const wobble = Math.sin(elapsed * wobbleSpeed) * wobbleDegrees;
+        text.style.opacity = '1';
+        text.style.transform = 'scale(' + endScale + ') rotate(' + wobble + 'deg)';
+      } else {
+        const fadeT = (elapsed - fadeOutStart) / (totalDuration - fadeOutStart);
+        text.style.opacity = String(Math.max(1 - fadeT, 0));
+      }
+
+      if (elapsed < totalDuration) {
+        requestAnimationFrame(frame);
+      } else {
+        overlay.remove();
+      }
+    }
+
+    requestAnimationFrame(frame);
   }
 
   function fireConfetti() {
