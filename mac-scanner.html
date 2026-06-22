@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,13 +87,16 @@
   }
 
   .installer-tag button {
-    background: none;
-    border: none;
+    background: rgba(47,138,97,0.18);
+    border: 1px solid rgba(47,138,97,0.5);
     color: var(--turf-light);
-    font-size: 11px;
-    font-weight: 600;
-    text-decoration: underline;
-    padding: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 5px 9px;
+    border-radius: 7px;
     margin-left: 6px;
     flex: none;
     width: auto;
@@ -533,8 +537,23 @@
     pointer-events: none;
     transition: all 0.25s ease;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .toast-check {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    animation: checkpop 0.35s ease-out;
+  }
+  @keyframes checkpop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
 
   footer {
     padding: 10px 20px 18px;
@@ -568,7 +587,6 @@
     </div>
     <div class="header-right">
       <span id="installer-tag" class="installer-tag" style="display:none;"></span>
-      <div class="pill">Live</div>
     </div>
   </header>
 
@@ -582,7 +600,7 @@
       </div>
       <h2>Quick setup</h2>
       <p>Saved on this phone — you'll only see this once.</p>
-      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan or Jayson Seagull" autocomplete="off" autocapitalize="words">
+      <input id="name-input" type="text" placeholder="Your name, e.g. Ivan" autocomplete="off" autocapitalize="words">
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
@@ -717,10 +735,6 @@
 
     <button class="btn-primary btn-large" id="btn-submit" disabled>Send to install form →</button>
 
-    <div id="debug-panel" style="display:none; background:rgba(244,240,230,0.06); border-radius:12px; padding:10px; font-size:11px; color:var(--grey);">
-      <div>Raw OCR text: <span id="debug-raw" style="color:var(--turf-light); font-family:monospace;"></span></div>
-    </div>
-
     <p class="hint">Start every job here. Line up the <strong>digits under the MAC barcode</strong> with the guide, tap Capture, then check the digits are right before sending. If it's scuffed or won't read, tap the pencil to type it instead.</p>
 
   </main>
@@ -782,6 +796,9 @@
   }
 
   let session = getSession();
+  let lastActivityTime = Date.now();
+  const IDLE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+  let pendingCameraStart = false; // true when confirm screen was triggered by a camera request
 
   function hideAllGates() {
     nameGate.classList.add('hidden');
@@ -792,7 +809,15 @@
   function showInstallerTag() {
     if (!session || !session.name) { installerTag.style.display = 'none'; return; }
     installerTag.style.display = 'inline';
-    installerTag.innerHTML = 'Hi, ' + session.name + '<button id="btn-change-name">reset</button>';
+    installerTag.innerHTML = 'Hi, ' + session.name + '<button id="btn-new-job">new job</button><button id="btn-change-name">reset</button>';
+    document.getElementById('btn-new-job').addEventListener('click', () => {
+      pendingCameraStart = false;
+      hideAllGates();
+      updateGate.classList.remove('hidden');
+      jobInput2.value = session.job || '';
+      venueInput2.value = session.venue || '';
+      jobInput2.focus();
+    });
     document.getElementById('btn-change-name').addEventListener('click', () => {
       hideAllGates();
       nameGate.classList.remove('hidden');
@@ -835,9 +860,15 @@
   // Confirm screen: Yes keeps job/structure, No opens the update form
   btnConfirmYes.addEventListener('click', () => {
     hideAllGates();
+    lastActivityTime = Date.now();
+    if (pendingCameraStart) {
+      pendingCameraStart = false;
+      startCamera();
+    }
   });
 
   btnConfirmNo.addEventListener('click', () => {
+    pendingCameraStart = false;
     hideAllGates();
     updateGate.classList.remove('hidden');
     jobInput2.value = session.job || '';
@@ -892,8 +923,6 @@
   const resultValue       = document.getElementById('result-value');
   const resultMetaText    = document.getElementById('result-meta-text');
   const toast             = document.getElementById('toast');
-  const debugPanel        = document.getElementById('debug-panel');
-  const debugRaw          = document.getElementById('debug-raw');
   const capturePreview    = document.getElementById('capture-preview');
   const capturePreviewImg = document.getElementById('capture-preview-img');
   const equipmentSection  = document.getElementById('equipment-section');
@@ -913,8 +942,10 @@
   let torchOn       = false;
   let ocrBusy       = false;
 
-  function showToast(msg) {
-    toast.textContent = msg;
+  function showToast(msg, success) {
+    toast.innerHTML = success
+      ? '<svg class="toast-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>' + msg
+      : msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
@@ -1081,13 +1112,9 @@
       capturePreviewImg.src = dataUrl;
       capturedPhotoDataUrl = dataUrl;
 
-      debugPanel.style.display = 'block';
-
       const { data } = await Tesseract.recognize(dataUrl, 'eng', {
         tessedit_char_whitelist: '0123456789ABCDEFabcdef',
       });
-
-      debugRaw.textContent = JSON.stringify(data.text);
 
       const cleaned = (data.text || '')
         .toUpperCase()
@@ -1133,7 +1160,19 @@
     }
   }
 
-  btnCamera.addEventListener('click', startCamera);
+  btnCamera.addEventListener('click', () => {
+    const idleFor = Date.now() - lastActivityTime;
+    if (idleFor >= IDLE_THRESHOLD_MS && session && session.name && session.job && session.venue) {
+      // Been away a while — re-confirm who's using this phone and for what
+      // job/structure before letting them start the next scan, so a phone
+      // handed to someone else (or left idle overnight) doesn't silently
+      // attribute the wrong installer/job to the next submission.
+      pendingCameraStart = true;
+      goToConfirmScreen();
+      return;
+    }
+    startCamera();
+  });
   btnCapture.addEventListener('click', captureAndRead);
 
   btnSkipScan.addEventListener('click', () => {
@@ -1300,9 +1339,10 @@
   btnSubmit.addEventListener('click', submitJob);
 
   function showSubmitSuccess() {
+    const wasComplete = (jobComplete === 'Yes');
+    lastActivityTime = Date.now();
     resultCard.classList.remove('show');
     capturePreview.style.display = 'none';
-    debugPanel.style.display = 'none';
     manualWrap.classList.remove('show');
     equipmentSection.style.display = 'none';
     completeSection.style.display = 'none';
@@ -1341,8 +1381,79 @@
     }
     btnTorch.style.display = 'none';
 
-    showToast('Submitted — ready for the next one');
+    showToast('Submitted — ready for the next one', true);
     if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    if (wasComplete) fireConfetti();
+  }
+
+  // A brief, lightweight celebration for a completed job — fires from the
+  // top of the screen, uses the app's own palette so it feels native rather
+  // than bolted on, and cleans itself up completely after under a second
+  // so it never lingers or gets in the way of starting the next scan.
+  function fireConfetti() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.inset = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '2000';
+    document.body.appendChild(canvas);
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const colors = ['#2f8a61', '#1f6b4a', '#f4f0e6', '#d4452c'];
+    const pieceCount = 46;
+    const pieces = [];
+    for (let i = 0; i < pieceCount; i++) {
+      pieces.push({
+        x: window.innerWidth / 2 + (Math.random() - 0.5) * 60,
+        y: window.innerHeight * 0.22,
+        vx: (Math.random() - 0.5) * 9,
+        vy: -(Math.random() * 7 + 4),
+        size: Math.random() * 5 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        spin: (Math.random() - 0.5) * 18,
+        gravity: 0.32 + Math.random() * 0.1
+      });
+    }
+
+    const startTime = performance.now();
+    const duration = 900;
+
+    function frame(now) {
+      const elapsed = now - startTime;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      pieces.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.rotation += p.spin;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        ctx.restore();
+      });
+
+      if (elapsed < duration) {
+        requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+      }
+    }
+
+    requestAnimationFrame(frame);
   }
 
 })();
@@ -1350,3 +1461,4 @@
 
 </body>
 </html>
+```
