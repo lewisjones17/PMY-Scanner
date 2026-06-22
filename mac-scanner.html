@@ -1409,24 +1409,24 @@
     ctx.scale(dpr, dpr);
 
     const colors = ['#2f8a61', '#1f6b4a', '#f4f0e6', '#d4452c'];
-    const pieceCount = 46;
+    const pieceCount = 90;
     const pieces = [];
     for (let i = 0; i < pieceCount; i++) {
       pieces.push({
-        x: window.innerWidth / 2 + (Math.random() - 0.5) * 60,
-        y: window.innerHeight * 0.22,
-        vx: (Math.random() - 0.5) * 9,
-        vy: -(Math.random() * 7 + 4),
-        size: Math.random() * 5 + 4,
+        x: window.innerWidth / 2 + (Math.random() - 0.5) * 140,
+        y: window.innerHeight * 0.18,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -(Math.random() * 9 + 6),
+        size: Math.random() * 9 + 8,
         color: colors[Math.floor(Math.random() * colors.length)],
         rotation: Math.random() * 360,
-        spin: (Math.random() - 0.5) * 18,
-        gravity: 0.32 + Math.random() * 0.1
+        spin: (Math.random() - 0.5) * 22,
+        gravity: 0.22 + Math.random() * 0.08
       });
     }
 
     const startTime = performance.now();
-    const duration = 900;
+    const duration = 2200;
 
     function frame(now) {
       const elapsed = now - startTime;
