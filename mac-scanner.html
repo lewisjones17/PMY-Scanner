@@ -972,8 +972,10 @@
     resultCard.classList.add('show');
     updateSubmitButtonState();
     if (source === 'capture' && navigator.vibrate) navigator.vibrate(60);
-    resultValue.focus();
-    resultValue.select();
+    if (source !== 'skip') {
+      resultValue.focus();
+      resultValue.select();
+    }
     equipmentSection.style.display = 'block';
     completeSection.style.display = 'block';
   }
@@ -1379,7 +1381,7 @@
     overlay.style.overflow = 'hidden';
 
     const text = document.createElement('div');
-    text.textContent = 'SO CLOSE';
+    text.textContent = 'SO CLOSE!!!!';
     text.style.fontWeight = '800';
     text.style.letterSpacing = '0.08em';
     text.style.color = 'var(--sand)';
@@ -1387,9 +1389,14 @@
     text.style.fontSize = '24px';
     text.style.opacity = '0';
     text.style.transformOrigin = 'center center';
+    text.style.whiteSpace = 'nowrap';
 
     overlay.appendChild(text);
     document.body.appendChild(overlay);
+
+    const textWidth = text.getBoundingClientRect().width;
+    const maxScaleForWidth = (window.innerWidth * 0.88) / textWidth;
+    const endScale = Math.min(9, Math.max(maxScaleForWidth, 1.5));
 
     const startTime = performance.now();
     const zoomDuration = 3400;
@@ -1398,7 +1405,6 @@
     const totalDuration = fadeOutStart + 500;
 
     const startScale = 1;
-    const endScale = 9;
     const wobbleDegrees = 6;
     const wobbleSpeed = 0.0045;
 
