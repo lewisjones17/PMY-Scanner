@@ -1,26 +1,3 @@
-Two real things to fix/add, plus the raw code at the end. Let's handle them properly.
-
-**The "```html" text** — that's not actually in your page; it's a leftover code-fence marker from when the raw code was pasted into GitHub's editor, sitting as the very first line of the file before the real `<!DOCTYPE html>`. Let's verify and strip it.
-
-My local copy is clean — confirming this is specifically a GitHub paste artifact, not something baked into the file itself. When you next copy the raw code below, copy **only the content between the code fence markers**, not the ```html line itself, and re-paste over the whole file in GitHub. That'll clear it.
-
-**Now let's double the confetti and add fireworks.**
-
-Now let's add fireworks — small bursts of particles that explode outward from random points, layered on the same canvas alongside the confetti.
-
-Now let's add firework bursts — a few timed explosions of small particles radiating outward, mixed into the same animation loop so they share one canvas and one cleanup.
-
-Let's run a full verification:
-
-All clean and confirmed.
-
-**Important on the "```html" fix:** when you copy the raw code below, copy starting from `<!DOCTYPE html>` — **do not include the "```html" line or the closing "```" line** at the very top/bottom of the code block. Paste that over the entire current file content in GitHub. That stray text was never part of the actual page; it was a leftover paste artifact sitting before the real HTML.
-
-**Confetti:** doubled from 90 to 180 pieces.
-
-**Fireworks:** four staggered bursts (at 80ms, 550ms, 1100ms, 1650ms into the celebration) — each one explodes 36 small glowing sparks outward from a random point in the upper half of the screen, fading out as they drift, layered into the same canvas as the confetti so it all plays together as one cohesive celebration.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
