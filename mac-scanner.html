@@ -1366,27 +1366,33 @@
 
     const phrase = SO_CLOSE_PHRASES[Math.floor(Math.random() * SO_CLOSE_PHRASES.length)];
 
+    const card = document.createElement('div');
+    card.style.background = 'var(--sand)';
+    card.style.borderRadius = '16px';
+    card.style.padding = '14px 22px';
+    card.style.boxShadow = '0 8px 32px rgba(0,0,0,0.45)';
+    card.style.opacity = '0';
+    card.style.transformOrigin = 'center center';
+
     const text = document.createElement('div');
     text.textContent = phrase;
     text.style.fontWeight = '800';
     text.style.letterSpacing = '0.06em';
-    text.style.color = 'var(--sand)';
-    text.style.textShadow = '0 4px 24px rgba(0,0,0,0.5)';
+    text.style.color = 'var(--ink)';
     let baseFontSize;
     if (phrase.length > 24) baseFontSize = '13px';
     else if (phrase.length > 19) baseFontSize = '15px';
     else if (phrase.length > 15) baseFontSize = '18px';
     else baseFontSize = '24px';
     text.style.fontSize = baseFontSize;
-    text.style.opacity = '0';
-    text.style.transformOrigin = 'center center';
     text.style.whiteSpace = 'nowrap';
 
-    overlay.appendChild(text);
+    card.appendChild(text);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    const textWidth = text.getBoundingClientRect().width;
-    const maxScaleForWidth = (window.innerWidth * 0.88) / textWidth;
+    const cardWidth = card.getBoundingClientRect().width;
+    const maxScaleForWidth = (window.innerWidth * 0.88) / cardWidth;
     const endScale = Math.min(9, Math.max(maxScaleForWidth, 1.5));
 
     const startTime = performance.now();
@@ -1407,15 +1413,15 @@
         const eased = 1 - Math.pow(1 - t, 3);
         const scale = startScale + (endScale - startScale) * eased;
         const wobble = Math.sin(elapsed * wobbleSpeed) * wobbleDegrees;
-        text.style.opacity = Math.min(t * 4, 1);
-        text.style.transform = 'scale(' + scale + ') rotate(' + wobble + 'deg)';
+        card.style.opacity = Math.min(t * 4, 1);
+        card.style.transform = 'scale(' + scale + ') rotate(' + wobble + 'deg)';
       } else if (elapsed <= fadeOutStart) {
         const wobble = Math.sin(elapsed * wobbleSpeed) * wobbleDegrees;
-        text.style.opacity = '1';
-        text.style.transform = 'scale(' + endScale + ') rotate(' + wobble + 'deg)';
+        card.style.opacity = '1';
+        card.style.transform = 'scale(' + endScale + ') rotate(' + wobble + 'deg)';
       } else {
         const fadeT = (elapsed - fadeOutStart) / (totalDuration - fadeOutStart);
-        text.style.opacity = String(Math.max(1 - fadeT, 0));
+        card.style.opacity = String(Math.max(1 - fadeT, 0));
       }
 
       if (elapsed < totalDuration) {
