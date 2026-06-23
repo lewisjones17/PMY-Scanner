@@ -949,12 +949,6 @@
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
-  // The bottom Send button should only ever be usable once Job Complete?
-  // has actually been answered — MAC alone (even blank, via Skip) isn't
-  // enough, since tapping it earlier was submitting with no completion
-  // status at all. The real submit paths are "Yes" (auto-submits) and
-  // ticking a Why-Not reason under "No" (also auto-submits) — this button
-  // is mainly a safety-net retry if one of those auto-submits failed.
   function updateSubmitButtonState() {
     btnSubmit.disabled = !jobComplete;
   }
@@ -1045,9 +1039,6 @@
     }
   }
 
-  // Crop a generous region around where the MAC digit row typically sits
-  // relative to the guide box, capture it as a still frame, and run OCR.
-  // A still frame is far more reliable for OCR than scanning live video.
   async function captureAndRead() {
     if (!scanning || ocrBusy) return;
     ocrBusy = true;
@@ -1059,25 +1050,16 @@
       const vw = video.videoWidth;
       const vh = video.videoHeight;
 
-      // Guide box sits centered, ~82% width, positioned around the
-      // vertical middle of the frame. The actual MAC digit row sits
-      // just BELOW where the guide box visually highlights (since the
-      // guide marks the barcode itself, and the digits print underneath
-      // it on the label) — so shift the crop down to follow that gap.
       const cropW = vw * 0.86;
       const cropH = vh * 0.22;
       const cropX = (vw - cropW) / 2;
-      const cropY = (vh * 0.50);  // start at vertical center, extend down
+      const cropY = (vh * 0.50);
 
       captureCanvas.width = cropW;
       captureCanvas.height = cropH;
       const ctx = captureCanvas.getContext('2d');
       ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-      // Upscale 2x and boost contrast before OCR — a sharp synthetic test
-      // reads perfectly, so closing the gap between "looks sharp on a small
-      // preview" and "actually sharp enough for OCR" comes down to giving
-      // Tesseract more pixels and starker black/white separation to work with.
       const upscale = 2;
       const procCanvas = document.createElement('canvas');
       procCanvas.width = cropW * upscale;
@@ -1087,7 +1069,6 @@
       pctx.imageSmoothingQuality = 'high';
       pctx.drawImage(captureCanvas, 0, 0, procCanvas.width, procCanvas.height);
 
-      // Grayscale + contrast stretch
       const imgData = pctx.getImageData(0, 0, procCanvas.width, procCanvas.height);
       const px = imgData.data;
       let min = 255, max = 0;
@@ -1106,9 +1087,6 @@
 
       const dataUrl = procCanvas.toDataURL('image/png');
 
-      // Show the capture in its own permanent comparison section, right
-      // below the result field, so it's easy to check the digits against
-      // the photo without digging into a debug panel.
       capturePreview.style.display = 'block';
       capturePreviewImg.src = dataUrl;
       capturedPhotoDataUrl = dataUrl;
@@ -1121,12 +1099,6 @@
         .toUpperCase()
         .replace(/[^0-9A-F]/g, '');
 
-      // Exterity MAC strings on these labels consistently start with the
-      // vendor prefix "00181C". If OCR picked up a stray extra character
-      // (noise from the crop edge, etc.), a blind slice(0,12) can grab the
-      // wrong 12-character window and silently corrupt the result. Anchor
-      // on the known prefix when present, otherwise fall back to the
-      // longest 12-char run starting from position 0.
       let finalValue;
       const prefixIndex = cleaned.indexOf('00181C');
       if (prefixIndex !== -1 && cleaned.length - prefixIndex >= 12) {
@@ -1367,6 +1339,18 @@
     else fireSoClose();
   }
 
+  const SO_CLOSE_PHRASES = [
+    'SO CLOSE!!!!',
+    'ALMOST HAD IT!!!!',
+    'NOT TODAY!!!!',
+    'SO NEAR, YET SO FAR!!!!',
+    'NEXT TIME, MAYBE!!!!',
+    'CLOSE, BUT NO CIGAR!!!!',
+    'THE STRUGGLE IS REAL!!!!',
+    'BLOCKED BY THE BUILDING!!!!',
+    'BE BETTER…..'
+  ];
+
   function fireSoClose() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -1380,13 +1364,20 @@
     overlay.style.zIndex = '2000';
     overlay.style.overflow = 'hidden';
 
+    const phrase = SO_CLOSE_PHRASES[Math.floor(Math.random() * SO_CLOSE_PHRASES.length)];
+
     const text = document.createElement('div');
-    text.textContent = 'SO CLOSE!!!!';
+    text.textContent = phrase;
     text.style.fontWeight = '800';
-    text.style.letterSpacing = '0.08em';
+    text.style.letterSpacing = '0.06em';
     text.style.color = 'var(--sand)';
     text.style.textShadow = '0 4px 24px rgba(0,0,0,0.5)';
-    text.style.fontSize = '24px';
+    let baseFontSize;
+    if (phrase.length > 24) baseFontSize = '13px';
+    else if (phrase.length > 19) baseFontSize = '15px';
+    else if (phrase.length > 15) baseFontSize = '18px';
+    else baseFontSize = '24px';
+    text.style.fontSize = baseFontSize;
     text.style.opacity = '0';
     text.style.transformOrigin = 'center center';
     text.style.whiteSpace = 'nowrap';
