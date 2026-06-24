@@ -1,10 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MacSnap — PMY Open Install Scanner</title>
+<title>MacSnap! — Install Scanner</title>
 <style>
   :root {
     --ink:        #0d1b1e;
@@ -77,13 +76,28 @@
 
   .header-right {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .installer-tag {
     font-size: 11px;
     color: var(--grey);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .installer-greeting {
+    font-size: 11px;
+    color: var(--grey);
+  }
+
+  .installer-buttons {
+    display: flex;
+    gap: 6px;
   }
 
   .installer-tag button {
@@ -97,7 +111,7 @@
     letter-spacing: 0.04em;
     padding: 5px 9px;
     border-radius: 7px;
-    margin-left: 6px;
+    margin-left: 0;
     flex: none;
     width: auto;
   }
@@ -460,7 +474,7 @@
     justify-content: center;
   }
 
-  .btn-ghost svg { width: 18px; height: 18px; }
+  .btn-ghost svg { width: 20px; height: 20px; }
 
   .complete-selected {
     background: var(--turf) !important;
@@ -581,8 +595,8 @@
         </svg>
       </div>
       <div class="brand-text">
-        MacSnap
-        <span>PMY Open · Mac Scanner</span>
+        MacSnap!
+        <span>Install Scanner</span>
       </div>
     </div>
     <div class="header-right">
@@ -604,7 +618,7 @@
       <input id="job-input" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-name">Save & continue</button>
-      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap is prohibited.</div>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap! is prohibited.</div>
     </div>
   </div>
 
@@ -619,7 +633,7 @@
       <p id="confirm-subtext">Job <strong id="confirm-job-display"></strong> at <strong id="confirm-venue-display"></strong></p>
       <button class="btn-primary" id="btn-confirm-yes" style="margin-bottom:10px;">Yes, continue →</button>
       <button class="btn-ghost" id="btn-confirm-no" style="width:100%; justify-content:center;">No, new job/structure</button>
-      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap is prohibited.</div>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap! is prohibited.</div>
     </div>
   </div>
 
@@ -636,7 +650,7 @@
       <input id="job-input-2" type="text" placeholder="Job number" autocomplete="off" inputmode="numeric">
       <input id="venue-input-2" type="text" placeholder="Structure / location" autocomplete="off" autocapitalize="words">
       <button class="btn-primary" id="btn-save-update">Save & continue</button>
-      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap is prohibited.</div>
+      <div class="gate-copyright">© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap! is prohibited.</div>
     </div>
   </div>
 
@@ -679,9 +693,12 @@
     <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
-          <rect x="9" y="2" width="6" height="6" rx="1" stroke-linejoin="round"/>
-          <path d="M9 8h6l1.5 3v9a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 7.5 20v-9L9 8z" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="10" y1="13" x2="14" y2="13" stroke-linecap="round"/>
+          <path d="M9.5 14.5L4 20a1.7 1.7 0 0 0 2.4 2.4l5.5-5.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9.5 14.5l2.7-2.7 5 1.4-3.6 3.6-1.4-5z" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12.2 11.8L17.8 6.2 21 3l-3.2 3.2-5.6 5.6z" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="18" y1="2.5" x2="18" y2="4.5" stroke-linecap="round"/>
+          <line x1="21.5" y1="5" x2="20" y2="6.5" stroke-linecap="round"/>
+          <line x1="22.5" y1="8.5" x2="20.3" y2="8.7" stroke-linecap="round"/>
         </svg>
       </button>
       <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
@@ -741,7 +758,7 @@
 
   </main>
 
-  <footer>MacSnap · PMY OPEN 2026 · Install tracking · Start here for every job<br>© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap is prohibited.</footer>
+  <footer>MacSnap! · Install tracking · Start here for every job<br>© Lewis Jones 2026. Unauthorized copying or distribution of MacSnap! is prohibited.</footer>
 
 </div>
 
@@ -764,7 +781,7 @@
   const ENTRY_PHOTO      = "entry.68415372";   // Capture Photo (link, text)
   const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
-  const STORAGE_KEY = "pmy_installer_session";
+  const STORAGE_KEY = "macsnap_installer_session";
 
   // ---------------------------------------------------------------
   // SETUP GATES — first-use form, then confirm-or-update each time
