@@ -134,6 +134,14 @@
     text-align: center;
   }
 
+  .name-gate-brand {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--sand);
+    margin-bottom: 18px;
+  }
+
   .name-gate-icon {
     width: 56px;
     height: 56px;
@@ -607,6 +615,7 @@
 
   <div id="name-gate" class="name-gate">
     <div class="name-gate-card">
+      <div class="name-gate-brand">MacSnap!</div>
       <div class="name-gate-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="8" r="4"/>
@@ -625,6 +634,7 @@
 
   <div id="confirm-gate" class="name-gate hidden">
     <div class="name-gate-card">
+      <div class="name-gate-brand">MacSnap!</div>
       <div class="name-gate-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/>
@@ -640,6 +650,7 @@
 
   <div id="update-gate" class="name-gate hidden">
     <div class="name-gate-card">
+      <div class="name-gate-brand">MacSnap!</div>
       <div class="name-gate-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -693,8 +704,13 @@
 
     <div class="actions actions-secondary">
       <button class="btn-ghost" id="btn-torch" aria-label="Toggle torch" style="display:none;">
-        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 2h6a1 1 0 0 1 1 1v3.382a2 2 0 0 1-.553 1.382L14 9.5V20a2 2 0 0 1-2 2 2 2 0 0 1-2-2V9.5L8.553 7.764A2 2 0 0 1 8 6.382V3a1 1 0 0 1 1-1z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9.5 14.5L4 20a1.7 1.7 0 0 0 2.4 2.4l5.5-5.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9.5 14.5l2.7-2.7 5 1.4-3.6 3.6-1.4-5z" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12.2 11.8L17.8 6.2 21 3l-3.2 3.2-5.6 5.6z" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="18" y1="2.5" x2="18" y2="4.5" stroke-linecap="round"/>
+          <line x1="21.5" y1="5" x2="20" y2="6.5" stroke-linecap="round"/>
+          <line x1="22.5" y1="8.5" x2="20.3" y2="8.7" stroke-linecap="round"/>
         </svg>
       </button>
       <button class="btn-ghost" id="btn-manual-toggle" aria-label="Enter manually">
@@ -965,6 +981,12 @@
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
+  // The bottom Send button should only ever be usable once Job Complete?
+  // has actually been answered — MAC alone (even blank, via Skip) isn't
+  // enough, since tapping it earlier was submitting with no completion
+  // status at all. The real submit paths are "Yes" (auto-submits) and
+  // ticking a Why-Not reason under "No" (also auto-submits) — this button
+  // is mainly a safety-net retry if one of those auto-submits failed.
   function updateSubmitButtonState() {
     btnSubmit.disabled = !jobComplete;
   }
@@ -1055,6 +1077,9 @@
     }
   }
 
+  // Crop a generous region around where the MAC digit row typically sits
+  // relative to the guide box, capture it as a still frame, and run OCR.
+  // A still frame is far more reliable for OCR than scanning live video.
   async function captureAndRead() {
     if (!scanning || ocrBusy) return;
     ocrBusy = true;
@@ -1066,16 +1091,25 @@
       const vw = video.videoWidth;
       const vh = video.videoHeight;
 
+      // Guide box sits centered, ~82% width, positioned around the
+      // vertical middle of the frame. The actual MAC digit row sits
+      // just BELOW where the guide box visually highlights (since the
+      // guide marks the barcode itself, and the digits print underneath
+      // it on the label) — so shift the crop down to follow that gap.
       const cropW = vw * 0.86;
       const cropH = vh * 0.22;
       const cropX = (vw - cropW) / 2;
-      const cropY = (vh * 0.50);
+      const cropY = (vh * 0.50);  // start at vertical center, extend down
 
       captureCanvas.width = cropW;
       captureCanvas.height = cropH;
       const ctx = captureCanvas.getContext('2d');
       ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
+      // Upscale 2x and boost contrast before OCR — a sharp synthetic test
+      // reads perfectly, so closing the gap between "looks sharp on a small
+      // preview" and "actually sharp enough for OCR" comes down to giving
+      // Tesseract more pixels and starker black/white separation to work with.
       const upscale = 2;
       const procCanvas = document.createElement('canvas');
       procCanvas.width = cropW * upscale;
@@ -1085,6 +1119,7 @@
       pctx.imageSmoothingQuality = 'high';
       pctx.drawImage(captureCanvas, 0, 0, procCanvas.width, procCanvas.height);
 
+      // Grayscale + contrast stretch
       const imgData = pctx.getImageData(0, 0, procCanvas.width, procCanvas.height);
       const px = imgData.data;
       let min = 255, max = 0;
@@ -1103,6 +1138,9 @@
 
       const dataUrl = procCanvas.toDataURL('image/png');
 
+      // Show the capture in its own permanent comparison section, right
+      // below the result field, so it's easy to check the digits against
+      // the photo without digging into a debug panel.
       capturePreview.style.display = 'block';
       capturePreviewImg.src = dataUrl;
       capturedPhotoDataUrl = dataUrl;
@@ -1115,6 +1153,12 @@
         .toUpperCase()
         .replace(/[^0-9A-F]/g, '');
 
+      // Exterity MAC strings on these labels consistently start with the
+      // vendor prefix "00181C". If OCR picked up a stray extra character
+      // (noise from the crop edge, etc.), a blind slice(0,12) can grab the
+      // wrong 12-character window and silently corrupt the result. Anchor
+      // on the known prefix when present, otherwise fall back to the
+      // longest 12-char run starting from position 0.
       let finalValue;
       const prefixIndex = cleaned.indexOf('00181C');
       if (prefixIndex !== -1 && cleaned.length - prefixIndex >= 12) {
@@ -1128,6 +1172,8 @@
         if (finalValue.length === 12 && prefixIndex !== -1) {
           showToast('Captured — check it\u2019s correct');
         } else {
+          // Either short, or we couldn't anchor on the known prefix —
+          // flag this clearly rather than presenting it as a clean result.
           resultMetaText.textContent = 'Got ' + cleaned.length + ' raw chars — check carefully (raw: ' + cleaned + ')';
           showToast('Please double-check before sending');
         }
@@ -1150,6 +1196,10 @@
   btnCamera.addEventListener('click', () => {
     const idleFor = Date.now() - lastActivityTime;
     if (idleFor >= IDLE_THRESHOLD_MS && session && session.name && session.job && session.venue) {
+      // Been away a while — re-confirm who's using this phone and for what
+      // job/structure before letting them start the next scan, so a phone
+      // handed to someone else (or left idle overnight) doesn't silently
+      // attribute the wrong installer/job to the next submission.
       pendingCameraStart = true;
       goToConfirmScreen();
       return;
@@ -1159,6 +1209,12 @@
   btnCapture.addEventListener('click', captureAndRead);
 
   btnSkipScan.addEventListener('click', () => {
+    // Require a photo to exist before allowing skip — otherwise an
+    // installer could tap Skip without ever attempting a capture, leaving
+    // the engineer with nothing to fault-find against. Deliberate "give up
+    // on scanning" path: fills a clear marker into the Mac field rather
+    // than leaving it blank, so it's obvious in the spreadsheet why it's
+    // empty, while keeping whatever photo was captured for reference.
     if (!capturedPhotoDataUrl) {
       showToast('Take a photo first (tap Capture), then Skip if it won\u2019t read');
       return;
@@ -1188,7 +1244,7 @@
   btnManualUse.addEventListener('click', () => {
     const val = manualInput.value.trim();
     if (!val) { showToast('Type a value first'); return; }
-    capturedPhotoDataUrl = null;
+    capturedPhotoDataUrl = null; // no photo for a manually-typed entry
     setResult(val, 'manual');
   });
 
@@ -1252,6 +1308,10 @@
 
   let submitting = false;
 
+  // Upload the captured photo to the Apps Script web app, which saves it
+  // to Drive and hands back a shareable link. Returns null if there's no
+  // photo to upload (e.g. manual entry) or if the upload itself fails —
+  // either way, the job submission should still proceed without blocking.
   async function uploadPhotoIfPresent() {
     if (!capturedPhotoDataUrl) return null;
     try {
@@ -1288,6 +1348,10 @@
         formData.append(ENTRY_PHOTO, photoLink);
       }
 
+      // Google Forms' formResponse endpoint doesn't return readable CORS
+      // data to JS, so the fetch always looks like it "fails" even on
+      // success. mode: 'no-cors' just fires the POST and moves on —
+      // there's no reliable way to confirm success/failure from here.
       await fetch(FORM_RESPONSE_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -1323,7 +1387,7 @@
 
     document.querySelectorAll('.reason-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.equip-check').forEach(cb => {
-      cb.checked = (cb.value === 'Exterity');
+      cb.checked = (cb.value === 'Exterity'); // Exterity is on virtually every job
     });
     otherInput.value = '';
     planLocationInput.value = '';
@@ -1334,6 +1398,7 @@
     btnSubmit.disabled = true;
     btnSubmit.textContent = 'Send to install form →';
 
+    // Reset the scan UI back to a clean "ready for the next one" state
     placeholder.style.display = 'flex';
     guideBox.style.display = 'none';
     scanState.style.display = 'none';
@@ -1355,6 +1420,13 @@
     else fireSoClose();
   }
 
+  // A small, dry, self-contained moment for an incomplete job — same
+  // "agonizingly close" energy as the confetti's opposite number, built
+  // entirely from text and CSS so there's no external media involved.
+  // A rotating pool of dry one-liners for an incomplete job — keeps the
+  // moment from going stale across a long shift of repeated scans. All
+  // original wording, sized so longer lines start smaller and still fit
+  // comfortably within the screen width once scaled up.
   const SO_CLOSE_PHRASES = [
     'SO CLOSE!!!!',
     'ALMOST HAD IT!!!!',
@@ -1382,6 +1454,9 @@
 
     const phrase = SO_CLOSE_PHRASES[Math.floor(Math.random() * SO_CLOSE_PHRASES.length)];
 
+    // Card-style background instead of bare text, so it reads clearly
+    // regardless of what's behind it — matches the app's existing
+    // result-card/form-section treatment (sand background, dark text).
     const card = document.createElement('div');
     card.style.background = 'var(--sand)';
     card.style.borderRadius = '16px';
@@ -1395,6 +1470,9 @@
     text.style.fontWeight = '800';
     text.style.letterSpacing = '0.06em';
     text.style.color = 'var(--ink)';
+    // Longer phrases start at a smaller base size so they end up at a
+    // similarly comfortable final size once scaled — a single threshold
+    // wasn't granular enough across this pool's range (12 to 27 chars).
     let baseFontSize;
     if (phrase.length > 24) baseFontSize = '13px';
     else if (phrase.length > 19) baseFontSize = '15px';
@@ -1407,25 +1485,32 @@
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
+    // Cap the scale so the text never grows wider than the screen,
+    // measured from its actual rendered width rather than a fixed
+    // multiplier — a fixed scale can overflow on narrower phones.
     const cardWidth = card.getBoundingClientRect().width;
     const maxScaleForWidth = (window.innerWidth * 0.88) / cardWidth;
     const endScale = Math.min(9, Math.max(maxScaleForWidth, 1.5));
 
+    // Slow zoom from small to large, with a gentle side-to-side wobble
+    // layered on top via rotation, so it actually has time to be read
+    // rather than flashing past in under a second.
     const startTime = performance.now();
-    const zoomDuration = 3400;
-    const holdDuration = 700;
+    const zoomDuration = 3400;   // time to grow from 1x to final scale
+    const holdDuration = 700;    // brief hold at full size before fading
     const fadeOutStart = zoomDuration + holdDuration;
     const totalDuration = fadeOutStart + 500;
 
     const startScale = 1;
     const wobbleDegrees = 6;
-    const wobbleSpeed = 0.0045;
+    const wobbleSpeed = 0.0045; // radians per ms, roughly one wobble per ~1.4s
 
     function frame(now) {
       const elapsed = now - startTime;
 
       if (elapsed <= zoomDuration) {
         const t = elapsed / zoomDuration;
+        // ease-out cubic for a slow, deliberate approach rather than linear
         const eased = 1 - Math.pow(1 - t, 3);
         const scale = startScale + (endScale - startScale) * eased;
         const wobble = Math.sin(elapsed * wobbleSpeed) * wobbleDegrees;
@@ -1450,6 +1535,10 @@
     requestAnimationFrame(frame);
   }
 
+  // A brief, lightweight celebration for a completed job — fires from the
+  // top of the screen, uses the app's own palette so it feels native rather
+  // than bolted on, and cleans itself up completely after under a second
+  // so it never lingers or gets in the way of starting the next scan.
   function fireConfetti() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -1485,6 +1574,8 @@
       });
     }
 
+    // Fireworks: a few timed bursts of small particles that explode outward
+    // from a point and fade, layered into the same canvas/loop as confetti.
     let fireworks = [];
     function spawnFirework() {
       const cx = window.innerWidth * (0.25 + Math.random() * 0.5);
@@ -1505,7 +1596,7 @@
         });
       }
     }
-    const fireworkTimes = [80, 550, 1100, 1650];
+    const fireworkTimes = [80, 550, 1100, 1650]; // ms after start, staggered bursts
     let nextFireworkIndex = 0;
 
     const startTime = performance.now();
@@ -1537,7 +1628,7 @@
       fireworks.forEach(s => {
         s.x += s.vx;
         s.y += s.vy;
-        s.vy += 0.05;
+        s.vy += 0.05; // light gravity drift on sparks
         s.life -= s.fade;
 
         if (s.life > 0) {
@@ -1567,4 +1658,3 @@
 
 </body>
 </html>
-```
