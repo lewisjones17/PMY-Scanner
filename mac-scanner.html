@@ -788,19 +788,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (function () {
-  const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/viewform";
-  const FORM_RESPONSE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe3Hciaw2UmsN7gy9BDdOwwMEDK76oO2Dcb9ZkG4J0LTNeffw/formResponse";
-  const ENTRY_NAME       = "entry.682346255";  // installer Name
-  const ENTRY_LOCATION   = "entry.1961882643"; // Location/Structure Name
-  const ENTRY_JOB        = "entry.1728239759"; // JOB NUMBER
-  const ENTRY_PLAN       = "entry.1133003866"; // Location (Number on plan or describe!)
-  const ENTRY_EQUIPMENT  = "entry.1043809043"; // Equipment installed (checkbox, multi)
-  const ENTRY_EQUIPMENT_OTHER = "entry.1043809043.other_option_response"; // Equipment installed - Other text
-  const ENTRY_ID         = "entry.846307";     // Exterity Mac (LAST 6 DIGITS)
-  const ENTRY_COMPLETE   = "entry.1990645547"; // Job Complete? (Yes/No)
-  const ENTRY_WHY_NOT    = "entry.1158375980"; // Why Not? [Why] (checkbox, multi)
-  const ENTRY_OTHER      = "entry.544145334";  // Other (text)
-  const ENTRY_PHOTO      = "entry.68415372";   // Capture Photo (link, text)
+  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbxQdF0G4NCSajPO0h77PBwagScbniwKXEpA1FwtjKRvI7QmyRj79uJbEaHhWa5TDhJE/exec";
   const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
   const STORAGE_KEY = "macsnap_installer_session";
@@ -1293,53 +1281,33 @@
     showToast('Select the reason(s), then tap Send to finish');
   });
 
-  function buildFormData() {
-    const formData = new FormData();
-    if (currentValue) {
-      formData.append(ENTRY_ID, currentValue);
-    }
-
-    if (session) {
-      if (session.name)  formData.append(ENTRY_NAME, session.name);
-      if (session.job)   formData.append(ENTRY_JOB, session.job);
-      if (session.venue) formData.append(ENTRY_LOCATION, session.venue);
-    }
-
-    document.querySelectorAll('.equip-check:checked').forEach(cb => {
-      formData.append(ENTRY_EQUIPMENT, cb.value);
-    });
-
-    const planVal = planLocationInput.value.trim();
-    if (planVal) formData.append(ENTRY_PLAN, planVal);
-
-    if (jobComplete) {
-      formData.append(ENTRY_COMPLETE, jobComplete);
-    }
-
-    if (jobComplete === 'No') {
-      document.querySelectorAll('.reason-check:checked').forEach(cb => {
-        formData.append(ENTRY_WHY_NOT, cb.value);
-      });
-      const otherVal = otherInput.value.trim();
-      if (otherVal) formData.append(ENTRY_OTHER, otherVal);
-    }
-
-    // Equipment Other — send as plain text value without the __other_option__
-    // sentinel, which Google Forms rejects silently on programmatic POSTs.
+  function buildPayload() {
+    const equipment = [];
+    document.querySelectorAll('.equip-check:checked').forEach(cb => equipment.push(cb.value));
     const equipOtherVal = equipOtherInput.value.trim();
-    if (equipOtherVal) {
-      formData.append(ENTRY_EQUIPMENT, equipOtherVal);
+    if (equipOtherVal) equipment.push(equipOtherVal);
+
+    const whyNot = [];
+    if (jobComplete === 'No') {
+      document.querySelectorAll('.reason-check:checked').forEach(cb => whyNot.push(cb.value));
     }
 
-    return formData;
+    return {
+      mac:      currentValue        || '',
+      name:     session?.name       || '',
+      job:      session?.job        || '',
+      location: session?.venue      || '',
+      plan:     planLocationInput.value.trim(),
+      equipment,
+      complete: jobComplete         || '',
+      whyNot,
+      other:    jobComplete === 'No' ? otherInput.value.trim() : '',
+      photo:    ''
+    };
   }
 
   let submitting = false;
 
-  // Upload the captured photo to the Apps Script web app, which saves it
-  // to Drive and hands back a shareable link. Returns null if there's no
-  // photo to upload (e.g. manual entry) or if the upload itself fails —
-  // either way, the job submission should still proceed without blocking.
   async function uploadPhotoIfPresent() {
     if (!capturedPhotoDataUrl) return null;
     try {
@@ -1371,22 +1339,21 @@
       const photoLink = await uploadPhotoIfPresent();
 
       btnSubmit.textContent = 'Sending…';
-      const formData = buildFormData();
-      if (photoLink) {
-        formData.append(ENTRY_PHOTO, photoLink);
-      }
+      const payload = buildPayload();
+      if (photoLink) payload.photo = photoLink;
 
-      // Google Forms' formResponse endpoint doesn't return readable CORS
-      // data to JS, so the fetch always looks like it "fails" even on
-      // success. mode: 'no-cors' just fires the POST and moves on —
-      // there's no reliable way to confirm success/failure from here.
-      await fetch(FORM_RESPONSE_URL, {
+      const response = await fetch(SHEET_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        body: formData
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
       });
+      const result = await response.json();
 
-      showSubmitSuccess();
+      if (result.success) {
+        showSubmitSuccess();
+      } else {
+        throw new Error(result.error || 'Script returned failure');
+      }
 
     } catch (err) {
       console.error('Submit error:', err);
