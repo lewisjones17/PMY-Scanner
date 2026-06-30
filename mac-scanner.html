@@ -788,7 +788,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (function () {
-  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbyjRBCzEZ-0-ytwaAe9x9x91jWf6ZCoHcbgHQRLMU0NuUCpYY7GlqRKd8J5F0odZRcP/exec";
+  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbxjx7okQzqBTXk907G5QSRIxpcNJH4lCHogOoZVJseDVSbJZQbyz4kAVMiwfr4pcZ0w/exec";
   const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
   const STORAGE_KEY = "macsnap_installer_session";
@@ -1352,13 +1352,6 @@
       if (result.success) {
         showSubmitSuccess();
       } else {
-        // Show the exact error from the script on screen
-        const errEl = document.createElement('div');
-        errEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0d1b1e;color:#f4f0e6;font-size:12px;padding:20px;z-index:9999;overflow:auto;font-family:monospace;';
-        errEl.innerHTML = '<b style="font-size:16px;color:#d4452c;">Script Error:</b><br><br>' +
-          JSON.stringify(result, null, 2) +
-          '<br><br><button onclick="this.parentNode.remove()" style="background:#1f6b4a;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;">Close</button>';
-        document.body.appendChild(errEl);
         throw new Error(result.error || 'Script returned failure');
       }
 
