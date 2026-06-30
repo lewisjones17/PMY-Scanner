@@ -1377,10 +1377,18 @@
         formData.append(ENTRY_PHOTO, photoLink);
       }
 
-      // Google Forms' formResponse endpoint doesn't return readable CORS
-      // data to JS, so the fetch always looks like it "fails" even on
-      // success. mode: 'no-cors' just fires the POST and moves on —
-      // there's no reliable way to confirm success/failure from here.
+      // DEBUG — shows all fields being sent on screen before POST fires
+      const debugEntries = [];
+      for (const [k, v] of formData.entries()) {
+        if (k !== ENTRY_PHOTO) debugEntries.push(k.replace('entry.', '') + ' = ' + v);
+      }
+      const debugEl = document.createElement('div');
+      debugEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0d1b1e;color:#f4f0e6;font-size:11px;padding:16px;z-index:9999;overflow:auto;font-family:monospace;';
+      debugEl.innerHTML = '<b style="font-size:14px;">DEBUG — Fields being sent:</b><br><br>' +
+        debugEntries.join('<br>') +
+        '<br><br><button onclick="this.parentNode.remove()" style="background:#1f6b4a;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;">Close & continue</button>';
+      document.body.appendChild(debugEl);
+
       await fetch(FORM_RESPONSE_URL, {
         method: 'POST',
         mode: 'no-cors',
