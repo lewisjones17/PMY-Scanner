@@ -788,7 +788,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (function () {
-  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbyV8a2sCYFvtIqzxk7vo0oJ92NJEO7j7M-3bMIfBjRG93g7L9HFwES4iHzikISf1vXC/exec";
+  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbxg5JSsWYEoSkraDxkoFeF61mwezsvWkuNwK8SZwGySAd_As6BOpVYkb7H1HBpiiCux/exec";
   const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
   const STORAGE_KEY = "macsnap_installer_session";
@@ -1351,6 +1351,14 @@
 
       if (result.success) {
         showSubmitSuccess();
+
+        // Background format call — fires after success, doesn't block engineer.
+        // Tells doPost to colour the last row without writing new data.
+        fetch(SHEET_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'format', complete: payload.complete })
+        }).catch(() => {});
       } else {
         throw new Error(result.error || 'Script returned failure');
       }
