@@ -1309,12 +1309,6 @@
       formData.append(ENTRY_EQUIPMENT, cb.value);
     });
 
-    const equipOtherVal = equipOtherInput.value.trim();
-    if (equipOtherVal) {
-      formData.append(ENTRY_EQUIPMENT, '__other_option__');
-      formData.append(ENTRY_EQUIPMENT_OTHER, equipOtherVal);
-    }
-
     const planVal = planLocationInput.value.trim();
     if (planVal) formData.append(ENTRY_PLAN, planVal);
 
@@ -1328,6 +1322,14 @@
       });
       const otherVal = otherInput.value.trim();
       if (otherVal) formData.append(ENTRY_OTHER, otherVal);
+    }
+
+    // Equipment Other appended last — keeps the sentinel + response pair
+    // together at the end, away from Why Not fields which can conflict.
+    const equipOtherVal = equipOtherInput.value.trim();
+    if (equipOtherVal) {
+      formData.append(ENTRY_EQUIPMENT, '__other_option__');
+      formData.append(ENTRY_EQUIPMENT_OTHER, equipOtherVal);
     }
 
     return formData;
