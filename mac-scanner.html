@@ -1352,6 +1352,13 @@
       if (result.success) {
         showSubmitSuccess();
       } else {
+        // Show the exact error from the script on screen
+        const errEl = document.createElement('div');
+        errEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0d1b1e;color:#f4f0e6;font-size:12px;padding:20px;z-index:9999;overflow:auto;font-family:monospace;';
+        errEl.innerHTML = '<b style="font-size:16px;color:#d4452c;">Script Error:</b><br><br>' +
+          JSON.stringify(result, null, 2) +
+          '<br><br><button onclick="this.parentNode.remove()" style="background:#1f6b4a;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;">Close</button>';
+        document.body.appendChild(errEl);
         throw new Error(result.error || 'Script returned failure');
       }
 
