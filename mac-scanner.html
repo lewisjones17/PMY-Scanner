@@ -1147,14 +1147,24 @@
       }
       pctx.putImageData(imgData, 0, 0);
 
-      const dataUrl = procCanvas.toDataURL('image/jpeg', 0.65);
+      // OCR uses the full 2x canvas for maximum accuracy.
+      // Upload uses a separate 1x canvas at 50% JPEG quality — same crop,
+      // much smaller file, still perfectly readable as a reference photo.
+      const uploadCanvas = document.createElement('canvas');
+      uploadCanvas.width = cropW;
+      uploadCanvas.height = cropH;
+      const uctx = uploadCanvas.getContext('2d');
+      uctx.drawImage(captureCanvas, 0, 0, cropW, cropH);
+      const uploadDataUrl = uploadCanvas.toDataURL('image/jpeg', 0.50);
+
+      const dataUrl = procCanvas.toDataURL('image/jpeg', 0.65); // preview only
 
       // Show the capture in its own permanent comparison section, right
       // below the result field, so it's easy to check the digits against
       // the photo without digging into a debug panel.
       capturePreview.style.display = 'block';
       capturePreviewImg.src = dataUrl;
-      capturedPhotoDataUrl = dataUrl;
+      capturedPhotoDataUrl = uploadDataUrl;
 
       const { data } = await Tesseract.recognize(dataUrl, 'eng', {
         tessedit_char_whitelist: '0123456789ABCDEFabcdef',
