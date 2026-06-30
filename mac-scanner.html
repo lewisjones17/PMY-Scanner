@@ -742,8 +742,10 @@
       <div class="section-label">Equipment installed</div>
       <label class="check-row"><input type="checkbox" value="55 inch Tv" class="equip-check"> 55 inch Tv</label>
       <label class="check-row"><input type="checkbox" value="43 inch tv" class="equip-check"> 43 inch tv</label>
+      <label class="check-row"><input type="checkbox" value="85 inch Tv" class="equip-check"> 85 inch Tv</label>
       <label class="check-row"><input type="checkbox" value="Stand" class="equip-check"> Stand</label>
       <label class="check-row"><input type="checkbox" value="Exterity" class="equip-check" checked> Exterity</label>
+      <input id="equip-other-input" type="text" placeholder="Other equipment (optional)" autocomplete="off" style="margin-top:10px;">
     </div>
 
     <div id="complete-section" class="form-section" style="display:none;">
@@ -963,6 +965,7 @@
   const btnCompleteNo     = document.getElementById('btn-complete-no');
   const otherInput        = document.getElementById('other-input');
   const planLocationInput = document.getElementById('plan-location-input');
+  const equipOtherInput   = document.getElementById('equip-other-input');
 
   let jobComplete = null; // 'Yes' | 'No' | null
   let capturedPhotoDataUrl = null; // most recent captured image, for upload on submit
@@ -1288,6 +1291,9 @@
       formData.append(ENTRY_EQUIPMENT, cb.value);
     });
 
+    const equipOtherVal = equipOtherInput.value.trim();
+    if (equipOtherVal) formData.append(ENTRY_EQUIPMENT, equipOtherVal);
+
     const planVal = planLocationInput.value.trim();
     if (planVal) formData.append(ENTRY_PLAN, planVal);
 
@@ -1391,6 +1397,7 @@
     });
     otherInput.value = '';
     planLocationInput.value = '';
+    equipOtherInput.value = '';
     btnCompleteYes.classList.remove('complete-selected');
     btnCompleteNo.classList.remove('complete-selected');
     btnSubmit.classList.remove('ready-to-send');
