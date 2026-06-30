@@ -795,6 +795,7 @@
   const ENTRY_JOB        = "entry.1728239759"; // JOB NUMBER
   const ENTRY_PLAN       = "entry.1133003866"; // Location (Number on plan or describe!)
   const ENTRY_EQUIPMENT  = "entry.1043809043"; // Equipment installed (checkbox, multi)
+  const ENTRY_EQUIPMENT_OTHER = "entry.1043809043.other_option_response"; // Equipment installed - Other text
   const ENTRY_ID         = "entry.846307";     // Exterity Mac (LAST 6 DIGITS)
   const ENTRY_COMPLETE   = "entry.1990645547"; // Job Complete? (Yes/No)
   const ENTRY_WHY_NOT    = "entry.1158375980"; // Why Not? [Why] (checkbox, multi)
@@ -1299,7 +1300,10 @@
     });
 
     const equipOtherVal = equipOtherInput.value.trim();
-    if (equipOtherVal) formData.append(ENTRY_EQUIPMENT, equipOtherVal);
+    if (equipOtherVal) {
+      formData.append(ENTRY_EQUIPMENT, '__other_option__');
+      formData.append(ENTRY_EQUIPMENT_OTHER, equipOtherVal);
+    }
 
     const planVal = planLocationInput.value.trim();
     if (planVal) formData.append(ENTRY_PLAN, planVal);
