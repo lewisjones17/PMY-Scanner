@@ -1351,14 +1351,6 @@
 
       if (result.success) {
         showSubmitSuccess();
-
-        // Background format call — fires after success, doesn't block engineer.
-        // Tells doPost to colour the last row without writing new data.
-        fetch(SHEET_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'format', complete: payload.complete })
-        }).catch(() => {});
       } else {
         throw new Error(result.error || 'Script returned failure');
       }
