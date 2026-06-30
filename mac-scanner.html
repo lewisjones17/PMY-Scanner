@@ -788,8 +788,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (function () {
-  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbxjx7okQzqBTXk907G5QSRIxpcNJH4lCHogOoZVJseDVSbJZQbyz4kAVMiwfr4pcZ0w/exec";
-  const FORMAT_URL    = "https://script.google.com/macros/s/AKfycbxRHwWVUTOu9FxxTwzgTBLwtgf-g3qeikcjUE57V6uaPp0IQEUJkwqhKJ_jVues-q_p/exec";
+  const SHEET_URL     = "https://script.google.com/macros/s/AKfycbyV8a2sCYFvtIqzxk7vo0oJ92NJEO7j7M-3bMIfBjRG93g7L9HFwES4iHzikISf1vXC/exec";
   const PHOTO_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxyiqkVqCWGXyJ0dJajYJ-FQUiczj2HvD8_gAByQmFGqaqYQN9Sxv0qJmEN84dhndma/exec";
 
   const STORAGE_KEY = "macsnap_installer_session";
@@ -1353,12 +1352,12 @@
       if (result.success) {
         showSubmitSuccess();
 
-        // Fire background format call — doesn't block the engineer,
-        // just colours the row and inserts checkbox in the sheet.
-        fetch(FORMAT_URL, {
+        // Background format call to the same endpoint — action:'format'
+        // tells doPost to only colour the row, not write another data row.
+        fetch(SHEET_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ complete: payload.complete })
+          body: JSON.stringify({ action: 'format', complete: payload.complete })
         }).catch(() => {});
       } else {
         throw new Error(result.error || 'Script returned failure');
